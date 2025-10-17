@@ -61,9 +61,6 @@
       background-size:var(--grid-step) var(--grid-step); background-position:0 0;
     }
 
-    .hud{position:absolute; bottom:12px; left:12px; background:rgba(17,24,39,.9); color:#e5e7eb; padding:8px 10px; border-radius:10px; font-size:12px; box-shadow:var(--shadow)}
-    .hud kbd{background:#111827; color:#e5e7eb; border:1px solid #374151; border-bottom-width:2px; padding:2px 6px; border-radius:6px; font-weight:700}
-
     .node-base{filter:drop-shadow(0 2px 6px rgba(0,0,0,.08))}
     .node-shape{fill:var(--node); stroke:var(--node-stroke); stroke-width:2}
     .node.selected .node-shape{stroke:var(--node-selected); stroke-width:2.5}
@@ -87,6 +84,8 @@
     .modal-head button:hover{background:#f3f4f6}
     .modal .row{display:flex; align-items:center; justify-content:space-between; padding:10px 0; border-top:1px solid #e5e7eb}
     .modal .row:first-of-type{border-top:none}
+    .modal-tip{margin-top:12px; padding-top:10px; border-top:1px solid #e5e7eb; font-size:12px; color:var(--muted); line-height:1.4}
+    .modal-tip strong{display:block; color:var(--ink); margin-bottom:4px}
     .switch{position:relative; width:48px; height:28px; flex:0 0 auto}
     .switch input{display:none}
     .switch .track{position:absolute; inset:0; background:#e5e7eb; border-radius:999px; transition:.2s}
@@ -97,19 +96,19 @@
 </head>
 <body>
   <header>
-    <h1>🧭 PAP&nbsp;Builder</h1>
+    <h1>PAP&nbsp;Builder</h1>
     <div class="spacer"></div>
-    <button id="btnSettings" title="Einstellungen">⚙️ Einstellungen</button>
+    <label class="file-btn-label" for="fileImportJSON" title="Projekt aus JSON laden">Import</label>
     <!-- Export dropdown -->
     <div class="dropdown" id="exportDropdown">
-      <button id="btnExport" title="Export">Export ▾</button>
+      <button id="btnExport" title="Export">EXPORT</button>
       <div class="menu" id="menuExport" role="menu" aria-hidden="true">
         <button type="button" data-action="export-json">Export JSON</button>
         <button type="button" data-action="export-png">Export PNG</button>
         <button type="button" data-action="export-png-grid">Export PNG + Linien</button>
       </div>
     </div>
-    <label class="file-btn-label" for="fileImportJSON" title="Projekt aus JSON laden">Import JSON</label>
+    <button id="btnSettings" title="Einstellungen">Einstellungen</button>
     <input id="fileImportJSON" class="file-input" type="file" accept="application/json" />
   </header>
 
@@ -161,7 +160,6 @@
         <g id="connectors"></g>
         <g id="nodes"></g>
       </svg>
-      <div class="hud">Tipp: <kbd>Doppelklick</kbd> um Text zu ändern · <kbd>Shift</kbd>→ zwei Formen anklicken für Verbindung · <kbd>Entf</kbd> zum Löschen</div>
     </div>
   </main>
 
@@ -170,17 +168,6 @@
       <div class="modal-head">
         <h3 id="settingsTitle">Einstellungen</h3>
         <button id="btnCloseSettings" aria-label="Schließen">✕</button>
-      </div>
-      <div class="row">
-        <div>
-          <div style="font-weight:600">Verbinder anzeigen</div>
-          <div style="font-size:12px; color:var(--muted)">Für Einsteiger standardmäßig aus – später zuschalten</div>
-        </div>
-        <label class="switch">
-          <input type="checkbox" id="toggleVerbinder">
-          <span class="track"></span>
-          <span class="thumb"></span>
-        </label>
       </div>
       <div class="row">
         <div>
@@ -198,6 +185,42 @@
           <option value="80">80px</option>
         </select>
       </div>
+      <div class="row">
+        <div>
+          <div style="font-weight:600">Vertikal: unbegrenzt</div>
+          <div style="font-size:12px; color:var(--muted)">Deaktivieren, um den Arbeitsbereich nach oben/unten zu begrenzen</div>
+        </div>
+        <label class="switch">
+          <input type="checkbox" id="toggleVerticalUnlimited" checked>
+          <span class="track"></span>
+          <span class="thumb"></span>
+        </label>
+      </div>
+      <div class="row">
+        <div>
+          <div style="font-weight:600">Horizontal: unbegrenzt</div>
+          <div style="font-size:12px; color:var(--muted)">Aktivieren, um den Arbeitsbereich nach links/rechts freizugeben</div>
+        </div>
+        <label class="switch">
+          <input type="checkbox" id="toggleHorizontalUnlimited">
+          <span class="track"></span>
+          <span class="thumb"></span>
+        </label>
+      </div>
+      <div class="row">
+        <div>
+          <div style="font-weight:600">Verbinder anzeigen</div>
+          <div style="font-size:12px; color:var(--muted)">Für Einsteiger standardmäßig aus – später zuschalten</div>
+        </div>
+        <label class="switch">
+          <input type="checkbox" id="toggleVerbinder">
+          <span class="track"></span>
+          <span class="thumb"></span>
+        </label>
+      </div>
+      <div class="modal-tip">
+        <strong>Tipp:</strong> Doppelklick um Text zu &auml;ndern &middot; Shift&rarr; zwei Formen anklicken f&uuml;r Verbindung &middot; Entf zum L&ouml;schen
+      </div>
     </div>
   </div>
 
@@ -213,6 +236,8 @@
     grid: 20,
     idCounter: 1,
     showVerbinder: false,
+    verticalUnlimited: true,
+    horizontalUnlimited: false,
     dirty: false,
     tabId: null,
     restoredFromAutosave: false
@@ -277,6 +302,7 @@
   const resizeCanvas = () => {
     const r = canvas.getBoundingClientRect();
     canvas.setAttribute('viewBox', `0 0 ${Math.floor(r.width)} ${Math.floor(r.height)}`);
+    if(!state.verticalUnlimited || !state.horizontalUnlimited) enforceConstraintsForAllNodes();
   };
   new ResizeObserver(resizeCanvas).observe(document.body);
   window.addEventListener('load', resizeCanvas);
@@ -290,11 +316,18 @@
       if(typeof s.showVerbinder==='boolean') state.showVerbinder = s.showVerbinder;
       const grid = Number(s.grid);
       if(Number.isFinite(grid) && grid > 0) state.grid = grid;
+      if(typeof s.verticalUnlimited==='boolean') state.verticalUnlimited = s.verticalUnlimited;
+      if(typeof s.horizontalUnlimited==='boolean') state.horizontalUnlimited = s.horizontalUnlimited;
     }catch{}
   }
   function saveSettings(){
     try{
-      localStorage.setItem('pap.settings', JSON.stringify({showVerbinder: state.showVerbinder, grid: state.grid}));
+      localStorage.setItem('pap.settings', JSON.stringify({
+        showVerbinder: state.showVerbinder,
+        grid: state.grid,
+        verticalUnlimited: state.verticalUnlimited,
+        horizontalUnlimited: state.horizontalUnlimited
+      }));
     }catch{}
   }
   const btnSettings = document.getElementById('btnSettings');
@@ -303,6 +336,8 @@
   const chkVerbinder = document.getElementById('toggleVerbinder');
   const verbinderTile = document.querySelector('.shape[data-shape="connector"]');
   const selectGrid = document.getElementById('selectGrid');
+  const toggleVerticalUnlimited = document.getElementById('toggleVerticalUnlimited');
+  const toggleHorizontalUnlimited = document.getElementById('toggleHorizontalUnlimited');
 
   function updateVerbinderUI(){
     if(verbinderTile) verbinderTile.style.display = state.showVerbinder ? '' : 'none';
@@ -319,6 +354,10 @@
       selectGrid.appendChild(option);
     }
     selectGrid.value = value;
+  }
+  function updateUnlimitedUI(){
+    if(toggleVerticalUnlimited) toggleVerticalUnlimited.checked = !!state.verticalUnlimited;
+    if(toggleHorizontalUnlimited) toggleHorizontalUnlimited.checked = !!state.horizontalUnlimited;
   }
   function applyGridToCanvas(){
     document.documentElement.style.setProperty('--grid-step', `${state.grid}px`);
@@ -340,6 +379,63 @@
     markDirty();
     showToast(`Snap-to-grid: ${size}px`);
   }
+  function setVerticalUnlimited(v){
+    state.verticalUnlimited = !!v;
+    updateUnlimitedUI();
+    saveSettings();
+    markDirty();
+    if(!state.verticalUnlimited) enforceConstraintsForAllNodes();
+    showToast(state.verticalUnlimited ? 'Vertikale Begrenzung aus' : 'Vertikale Begrenzung an');
+  }
+  function setHorizontalUnlimited(v){
+    state.horizontalUnlimited = !!v;
+    updateUnlimitedUI();
+    saveSettings();
+    markDirty();
+    if(!state.horizontalUnlimited) enforceConstraintsForAllNodes();
+    showToast(state.horizontalUnlimited ? 'Horizontale Begrenzung aus' : 'Horizontale Begrenzung an');
+  }
+  function getCanvasSize(){
+    const viewBox = canvas.getAttribute('viewBox');
+    if(viewBox){
+      const parts = viewBox.split(/\s+/).map(Number);
+      if(parts.length===4 && parts.every(n=>Number.isFinite(n))){
+        return {width:parts[2], height:parts[3]};
+      }
+    }
+    const r = canvas.getBoundingClientRect();
+    return {width:r.width, height:r.height};
+  }
+  function applyNodeConstraints(node){
+    const size = getCanvasSize();
+    if(!size) return;
+    let {x, y} = node;
+    if(!state.horizontalUnlimited){
+      const minX = node.w/2;
+      const maxX = Math.max(minX, size.width - node.w/2);
+      x = Math.min(Math.max(x, minX), maxX);
+    }
+    if(!state.verticalUnlimited){
+      const minY = node.h/2;
+      const maxY = Math.max(minY, size.height - node.h/2);
+      y = Math.min(Math.max(y, minY), maxY);
+    }
+    node.x = x;
+    node.y = y;
+  }
+  function enforceConstraintsForAllNodes(){
+    let changed = false;
+    for(const node of state.nodes.values()){
+      const prevX = node.x;
+      const prevY = node.y;
+      applyNodeConstraints(node);
+      if(node.x !== prevX || node.y !== prevY){
+        renderNode(node);
+        changed = true;
+      }
+    }
+    if(changed) markDirty();
+  }
 
   function openSettings(){ modal.classList.add('show'); modal.setAttribute('aria-hidden','false'); }
   function closeSettings(){ modal.classList.remove('show'); modal.setAttribute('aria-hidden','true'); }
@@ -348,6 +444,7 @@
   applyGridToCanvas();
   updateVerbinderUI();
   updateGridUI();
+  updateUnlimitedUI();
   restoreAutosaveIfAny();
 
   if(btnSettings) btnSettings.addEventListener('click', openSettings);
@@ -355,6 +452,8 @@
   if(modal) modal.addEventListener('click', (e)=>{ if(e.target===modal) closeSettings(); });
   if(chkVerbinder) chkVerbinder.addEventListener('change', (e)=> setShowVerbinder(e.target.checked));
   if(selectGrid) selectGrid.addEventListener('change', (e)=> setGridSize(e.target.value));
+  if(toggleVerticalUnlimited) toggleVerticalUnlimited.addEventListener('change', (e)=> setVerticalUnlimited(e.target.checked));
+  if(toggleHorizontalUnlimited) toggleHorizontalUnlimited.addEventListener('change', (e)=> setHorizontalUnlimited(e.target.checked));
   window.addEventListener('keydown', (e)=>{ if(e.key==='Escape' && modal?.classList.contains('show')) closeSettings(); });
 
   // Palette drag & drop
@@ -394,6 +493,7 @@
     const base = { w:160, h:70 };
     let label = { terminator:'Start/Ende', process:'Prozess', decision:'Entscheidung?', io:'Ein-/Ausgabe', connector:'Verbinder' }[type] || 'Knoten';
     const node = { id: nextId('n'), type, x, y, w: base.w, h: base.h, label };
+    applyNodeConstraints(node);
     state.nodes.set(node.id, node);
     markDirty();
     return node;
@@ -461,7 +561,7 @@
   // Dragging
   let drag=null;
   function startDragNode(e){ e.stopPropagation(); const id=this.id; const node=state.nodes.get(id); select({type:'node',id}); const start=clientToSvg(e.clientX,e.clientY); drag={id, ox:node.x, oy:node.y, sx:start.x, sy:start.y}; window.addEventListener('mousemove', onDragMove); window.addEventListener('mouseup', endDrag); }
-  function onDragMove(e){ if(!drag) return; const pt=clientToSvg(e.clientX,e.clientY); const dx=pt.x-drag.sx, dy=pt.y-drag.sy; const node=state.nodes.get(drag.id); const [nx,ny]=snap(drag.ox+dx, drag.oy+dy); node.x=nx; node.y=ny; renderNode(node); }
+  function onDragMove(e){ if(!drag) return; const pt=clientToSvg(e.clientX,e.clientY); const dx=pt.x-drag.sx, dy=pt.y-drag.sy; const node=state.nodes.get(drag.id); if(!node) return; const [nx,ny]=snap(drag.ox+dx, drag.oy+dy); node.x=nx; node.y=ny; applyNodeConstraints(node); renderNode(node); }
   function endDrag(){ window.removeEventListener('mousemove', onDragMove); window.removeEventListener('mouseup', endDrag); drag=null; markDirty(); }
 
   // Connectors
@@ -506,14 +606,29 @@
 
   function deleteNode(id){ for(const [cid,conn] of [...state.connectors]){ if(conn.fromId===id || conn.toId===id) deleteConnector(cid); } state.nodes.delete(id); const el=document.getElementById(id); if(el) el.remove(); markDirty(); }
   function deleteConnector(id){ state.connectors.delete(id); const el=document.getElementById(id); if(el) el.remove(); markDirty(); }
-  function duplicateNode(id){ const n=state.nodes.get(id); const dup={...n, id:nextId('n'), x:n.x+state.grid*2, y:n.y+state.grid*2}; state.nodes.set(dup.id, dup); renderNode(dup); select({type:'node', id:dup.id}); markDirty(); }
+  function duplicateNode(id){
+    const n=state.nodes.get(id);
+    if(!n) return;
+    const dup={...n, id:nextId('n'), x:n.x+state.grid*2, y:n.y+state.grid*2};
+    applyNodeConstraints(dup);
+    state.nodes.set(dup.id, dup);
+    renderNode(dup);
+    select({type:'node', id:dup.id});
+    markDirty();
+  }
 
   // Serialize / Import / Export helpers
   function serializeProject(){
     return JSON.stringify({
       nodes:[...state.nodes.values()],
       connectors:[...state.connectors.values()],
-      meta:{grid:state.grid, savedAt:new Date().toISOString(), nextId:state.idCounter}
+      meta:{
+        grid:state.grid,
+        savedAt:new Date().toISOString(),
+        nextId:state.idCounter,
+        verticalUnlimited: state.verticalUnlimited,
+        horizontalUnlimited: state.horizontalUnlimited
+      }
     }, null, 2);
   }
 
@@ -527,9 +642,13 @@
     layerNodes.innerHTML = '';
     layerCons.innerHTML = '';
 
-    if(data?.meta?.grid){
-      const g = Number(data.meta.grid);
-      if(Number.isFinite(g) && g > 0) state.grid = g;
+    if(data?.meta){
+      if(data.meta.hasOwnProperty('grid')){
+        const g = Number(data.meta.grid);
+        if(Number.isFinite(g) && g > 0) state.grid = g;
+      }
+      if(typeof data.meta.verticalUnlimited === 'boolean') state.verticalUnlimited = data.meta.verticalUnlimited;
+      if(typeof data.meta.horizontalUnlimited === 'boolean') state.horizontalUnlimited = data.meta.horizontalUnlimited;
     }
     applyGridToCanvas();
 
@@ -537,6 +656,7 @@
     for(const rawNode of validNodes){
       if(!rawNode?.id) continue;
       const node = sanitizeNode(rawNode);
+      applyNodeConstraints(node);
       state.nodes.set(node.id, node);
       renderNode(node);
     }
@@ -556,6 +676,8 @@
     select(null);
     state.pendingLinkFrom = null;
     updateGridUI();
+    updateUnlimitedUI();
+    if(!state.verticalUnlimited || !state.horizontalUnlimited) enforceConstraintsForAllNodes();
     state.dirty = false;
   }
 
@@ -689,3 +811,4 @@
   </script>
 </body>
 </html>
+
