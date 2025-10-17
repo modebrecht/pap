@@ -18,6 +18,8 @@
       --node-selected:#3b82f6;
       --shadow:0 10px 30px rgba(0,0,0,.08);
       --grid-step:20px;
+      --node-font-size:12px;
+      --node-font-family:system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;
     }
     *{box-sizing:border-box}
     html,body{height:100%}
@@ -34,6 +36,10 @@
       border:1px solid #d1d5db; background:#fff; padding:8px 10px; border-radius:10px; cursor:pointer; transition:.15s ease; font-weight:600
     }
     header button:hover, header .file-btn-label:hover{background:#f3f4f6}
+    header button:disabled{opacity:.5; cursor:not-allowed}
+    header button:disabled:hover{background:#fff}
+    header .btn-group{display:flex; align-items:center; gap:6px}
+    header .btn-group button, header .btn-group .file-btn-label{margin:0}
     header .file-input{display:none}
 
     /* Export dropdown */
@@ -64,7 +70,7 @@
     .node-base{filter:drop-shadow(0 2px 6px rgba(0,0,0,.08))}
     .node-shape{fill:var(--node); stroke:var(--node-stroke); stroke-width:2}
     .node.selected .node-shape{stroke:var(--node-selected); stroke-width:2.5}
-    .node text{font:600 12px/1.2 system-ui,Segoe UI,Roboto,Arial,sans-serif; fill:#111827; pointer-events:none}
+    .node text{font:600 var(--node-font-size)/1.2 var(--node-font-family); fill:#111827; pointer-events:none}
 
     .connector{stroke:#64748b; stroke-width:2.25; stroke-linecap:round; pointer-events:stroke; cursor:pointer; transition:stroke-width .12s ease, stroke-opacity .12s ease}
     .connector.selected{stroke:var(--node-selected)}
@@ -103,14 +109,19 @@
   <header>
     <h1>PAP&nbsp;Builder</h1>
     <div class="spacer"></div>
-    <label class="file-btn-label" for="fileImportJSON" title="Projekt aus JSON laden">Import</label>
-    <!-- Export dropdown -->
-    <div class="dropdown" id="exportDropdown">
-      <button id="btnExport" title="Export">EXPORT</button>
-      <div class="menu" id="menuExport" role="menu" aria-hidden="true">
-        <button type="button" data-action="export-json">Export JSON</button>
-        <button type="button" data-action="export-png">Export PNG</button>
-        <button type="button" data-action="export-png-grid">Export PNG + Linien</button>
+    <div class="btn-group" id="fontControls">
+      <button type="button" id="btnFontIncrease" title="Schriftgroesse erhoehen">F+</button>
+      <button type="button" id="btnFontDecrease" title="Schriftgroesse verringern">F-</button>
+    </div>
+    <div class="btn-group" id="groupImportExport">
+      <label class="file-btn-label" for="fileImportJSON" title="Projekt aus JSON laden">Import</label>
+      <div class="dropdown" id="exportDropdown">
+        <button id="btnExport" title="Export">EXPORT</button>
+        <div class="menu" id="menuExport" role="menu" aria-hidden="true">
+          <button type="button" data-action="export-json">Export JSON</button>
+          <button type="button" data-action="export-png">Export PNG</button>
+          <button type="button" data-action="export-png-grid">Export PNG + Linien</button>
+        </div>
       </div>
     </div>
     <button id="btnSettings" title="Einstellungen">Einstellungen</button>
@@ -264,6 +275,7 @@
     viewportWidth: 0,
     viewportHeight: 0,
     showArrows: true,
+    fontSize: 12,
     contextConnectorId: null,
     contextNodeId: null,
     dirty: false,
@@ -286,7 +298,18 @@
   let connectorMenuVisible = false;
   const nodeMenu = document.getElementById('nodeMenu');
   const nodeDelete = document.getElementById('nodeDelete');
+  const btnFontIncrease = document.getElementById('btnFontIncrease');
+  const btnFontDecrease = document.getElementById('btnFontDecrease');
   let nodeMenuVisible = false;
+  const FONT_WEIGHT = 600;
+  const FONT_FAMILY = 'system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif';
+  const FONT_SIZE_MIN = 10;
+  const FONT_SIZE_MAX = 26;
+  const FONT_SIZE_STEP = 2;
+  const LABEL_TEXT_PADDING = 24;
+  const measureCanvas = document.createElement('canvas');
+  const measureCtx = measureCanvas.getContext('2d');
+  if(measureCtx){ measureCtx.font = `${FONT_WEIGHT} ${state.fontSize}px ${FONT_FAMILY}`; }
 
   // --- Autosave (per tab) ---
   function ensureTabId(){
@@ -363,6 +386,8 @@
       if(typeof s.verticalUnlimited==='boolean') state.verticalUnlimited = s.verticalUnlimited;
       if(typeof s.horizontalUnlimited==='boolean') state.horizontalUnlimited = s.horizontalUnlimited;
       if(typeof s.showArrows==='boolean') state.showArrows = s.showArrows;
+      const fontSize = Number(s.fontSize);
+      if(Number.isFinite(fontSize)) state.fontSize = clampFontSize(fontSize);
     }catch{}
   }
   function saveSettings(){
@@ -372,7 +397,8 @@
         grid: state.grid,
         verticalUnlimited: state.verticalUnlimited,
         horizontalUnlimited: state.horizontalUnlimited,
-        showArrows: state.showArrows
+        showArrows: state.showArrows,
+        fontSize: state.fontSize
       }));
     }catch{}
   }
@@ -416,6 +442,94 @@
     if(canvas){
       canvas.classList.toggle('arrows-hidden', !state.showArrows);
     }
+  }
+  function clampFontSize(value){
+    return Math.max(FONT_SIZE_MIN, Math.min(FONT_SIZE_MAX, Math.round(value)));
+  }
+  function fontString(size){
+    return `${FONT_WEIGHT} ${size}px ${FONT_FAMILY}`;
+  }
+  function lineHeightPx(size){
+    return Math.round(size * 1.25);
+  }
+  function applyFontSize(){
+    state.fontSize = clampFontSize(state.fontSize);
+    document.documentElement.style.setProperty('--node-font-size', `${state.fontSize}px`);
+    document.documentElement.style.setProperty('--node-font-family', FONT_FAMILY);
+    if(measureCtx){ measureCtx.font = fontString(state.fontSize); }
+    updateFontButtons();
+  }
+  function updateFontButtons(){
+    if(btnFontIncrease) btnFontIncrease.disabled = state.fontSize >= FONT_SIZE_MAX;
+    if(btnFontDecrease) btnFontDecrease.disabled = state.fontSize <= FONT_SIZE_MIN;
+  }
+  function measureLabelWidth(text){
+    const str = String(text ?? '');
+    if(!measureCtx) return str.length * 7;
+    measureCtx.font = fontString(state.fontSize);
+    return measureCtx.measureText(str).width;
+  }
+  function breakLongWord(word, maxWidth){
+    const result=[];
+    let current='';
+    for(const char of String(word)){
+      const attempt = current + char;
+      if(current && measureLabelWidth(attempt) > maxWidth){
+        result.push(current);
+        current = char;
+      }else{
+        current = attempt;
+      }
+    }
+    if(current) result.push(current);
+    return result.length? result : [''];
+  }
+  function wrapLabelText(text, maxWidth){
+    const raw = String(text ?? '').trim();
+    if(!raw) return [''];
+    const limit = Math.max(10, Number(maxWidth) || 0);
+    const words = [];
+    for(const token of raw.split(/\s+/)){
+      if(!token) continue;
+      if(measureLabelWidth(token) > limit){
+        words.push(...breakLongWord(token, limit));
+      }else{
+        words.push(token);
+      }
+    }
+    if(words.length === 0) return [''];
+    const lines=[];
+    let current = words.shift() || '';
+    for(const word of words){
+      const candidate = current ? `${current} ${word}` : word;
+      if(measureLabelWidth(candidate) > limit && current){
+        lines.push(current);
+        current = word;
+      }else{
+        current = candidate;
+      }
+    }
+    if(current) lines.push(current);
+    return lines.length? lines : [''];
+  }
+  function rerenderAllNodes(){
+    for(const node of state.nodes.values()){
+      renderNode(node);
+    }
+  }
+  function setFontSize(size, silent=false){
+    closeAllMenus();
+    const clamped = clampFontSize(size);
+    if(state.fontSize === clamped) return;
+    state.fontSize = clamped;
+    applyFontSize();
+    rerenderAllNodes();
+    saveSettings();
+    markDirty();
+    if(!silent) showToast(`Schriftgroesse: ${clamped}px`);
+  }
+  function adjustFontSize(delta){
+    setFontSize(state.fontSize + delta);
   }
   function closeConnectorMenu(){
     if(connectorMenuVisible){
@@ -614,6 +728,7 @@
   function closeSettings(){ modal.classList.remove('show'); modal.setAttribute('aria-hidden','true'); }
 
   loadSettings();
+  applyFontSize();
   applyGridToCanvas();
   updateVerbinderUI();
   updateGridUI();
@@ -630,6 +745,8 @@
   if(toggleVerticalUnlimited) toggleVerticalUnlimited.addEventListener('change', (e)=> setVerticalUnlimited(e.target.checked));
   if(toggleHorizontalUnlimited) toggleHorizontalUnlimited.addEventListener('change', (e)=> setHorizontalUnlimited(e.target.checked));
   if(toggleArrows) toggleArrows.addEventListener('change', (e)=> setShowArrows(e.target.checked));
+  if(btnFontIncrease) btnFontIncrease.addEventListener('click', ()=> adjustFontSize(FONT_SIZE_STEP));
+  if(btnFontDecrease) btnFontDecrease.addEventListener('click', ()=> adjustFontSize(-FONT_SIZE_STEP));
   window.addEventListener('keydown', (e)=>{ if(e.key==='Escape' && modal?.classList.contains('show')) closeSettings(); });
   if(connectorToggleArrow) connectorToggleArrow.addEventListener('click', ()=>{
     if(state.contextConnectorId){ toggleConnectorArrow(state.contextConnectorId); }
@@ -723,9 +840,25 @@
     const shape = shapeElement(node); shape.setAttribute('class','node-shape'); g.appendChild(shape);
 
     const text = document.createElementNS('http://www.w3.org/2000/svg','text');
-    text.setAttribute('x', node.w/2); text.setAttribute('y', node.h/2);
-    text.setAttribute('text-anchor','middle'); text.setAttribute('dominant-baseline','middle');
-    text.textContent = node.label; g.appendChild(text);
+    text.setAttribute('text-anchor','middle');
+    text.setAttribute('dominant-baseline','middle');
+    text.setAttribute('aria-label', node.label || '');
+    const fontSize = clampFontSize(state.fontSize);
+    const lineHeight = lineHeightPx(fontSize);
+    const maxTextWidth = Math.max(10, node.w - LABEL_TEXT_PADDING);
+    const lines = wrapLabelText(node.label, maxTextWidth);
+    const startY = node.h/2 - ((lines.length - 1) * lineHeight)/2;
+    text.setAttribute('font-size', fontSize);
+    text.setAttribute('font-family', FONT_FAMILY);
+    text.setAttribute('font-weight', FONT_WEIGHT);
+    lines.forEach((line, idx)=>{
+      const tspan = document.createElementNS('http://www.w3.org/2000/svg','tspan');
+      tspan.setAttribute('x', node.w/2);
+      tspan.setAttribute('y', (startY + idx * lineHeight).toFixed(2));
+      tspan.textContent = line || '\u200B';
+      text.appendChild(tspan);
+    });
+    g.appendChild(text);
 
     updateConnectorsFor(node.id);
     requestStageSizeUpdate();
@@ -988,7 +1121,8 @@
         savedAt:new Date().toISOString(),
         nextId:state.idCounter,
         verticalUnlimited: state.verticalUnlimited,
-        horizontalUnlimited: state.horizontalUnlimited
+        horizontalUnlimited: state.horizontalUnlimited,
+        fontSize: state.fontSize
       }
     }, null, 2);
   }
@@ -1010,7 +1144,10 @@
       }
       if(typeof data.meta.verticalUnlimited === 'boolean') state.verticalUnlimited = data.meta.verticalUnlimited;
       if(typeof data.meta.horizontalUnlimited === 'boolean') state.horizontalUnlimited = data.meta.horizontalUnlimited;
+      const metaFontSize = Number(data.meta.fontSize);
+      if(Number.isFinite(metaFontSize)) state.fontSize = clampFontSize(metaFontSize);
     }
+    applyFontSize();
     applyGridToCanvas();
 
     const validNodes = Array.isArray(data?.nodes) ? data.nodes : [];
@@ -1098,7 +1235,7 @@
     style.textContent = `
       .node-shape{fill:${cssVar('--node','#ffffff')};stroke:${cssVar('--node-stroke','#cbd5e1')};stroke-width:2}
       .connector{stroke:#64748b;stroke-width:2.25}
-      text{fill:#111827;font:600 12px/1.2 system-ui,Segoe UI,Roboto,Arial,sans-serif}
+      text{fill:#111827;font:600 ${cssVar('--node-font-size','12px')}/1.2 ${cssVar('--node-font-family','system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif')}}
       marker path{fill:#64748b}
     `;
     clone.insertBefore(style, clone.firstChild);
