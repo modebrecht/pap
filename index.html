@@ -17,6 +17,7 @@
       --node-stroke:#cbd5e1;
       --node-selected:#3b82f6;
       --shadow:0 10px 30px rgba(0,0,0,.08);
+      --grid-step:20px;
     }
     *{box-sizing:border-box}
     html,body{height:100%}
@@ -55,9 +56,9 @@
 
     /* SVG canvas + grid */
     #canvas{width:100%; height:100%; display:block; background:
-      linear-gradient(transparent 19px, #e5e7eb 20px),
-      linear-gradient(90deg, transparent 19px, #e5e7eb 20px);
-      background-size:20px 20px; background-position:0 0;
+      linear-gradient(transparent calc(var(--grid-step) - 1px), #e5e7eb calc(var(--grid-step))),
+      linear-gradient(90deg, transparent calc(var(--grid-step) - 1px), #e5e7eb calc(var(--grid-step)));
+      background-size:var(--grid-step) var(--grid-step); background-position:0 0;
     }
 
     .hud{position:absolute; bottom:12px; left:12px; background:rgba(17,24,39,.9); color:#e5e7eb; padding:8px 10px; border-radius:10px; font-size:12px; box-shadow:var(--shadow)}
@@ -161,7 +162,6 @@
         <g id="nodes"></g>
       </svg>
       <div class="hud">Tipp: <kbd>Doppelklick</kbd> um Text zu ändern · <kbd>Shift</kbd>→ zwei Formen anklicken für Verbindung · <kbd>Entf</kbd> zum Löschen</div>
-      <div class="badge">Snap to grid 20px</div>
     </div>
   </main>
 
@@ -181,6 +181,22 @@
           <span class="track"></span>
           <span class="thumb"></span>
         </label>
+      </div>
+      <div class="row">
+        <div>
+          <div style="font-weight:600">Snap-to-grid</div>
+          <div style="font-size:12px; color:var(--muted)">Rastergröße für das Platzieren und Verschieben von Formen</div>
+        </div>
+        <select id="selectGrid" style="padding:6px 8px; border-radius:10px; border:1px solid #d1d5db;">
+          <option value="10">10px</option>
+          <option value="20">20px (Standard)</option>
+          <option value="30">30px</option>
+          <option value="40">40px</option>
+          <option value="50">50px</option>
+          <option value="60">60px</option>
+          <option value="70">70px</option>
+          <option value="80">80px</option>
+        </select>
       </div>
     </div>
   </div>
@@ -269,21 +285,43 @@
   function loadSettings(){
     try{
       const raw = localStorage.getItem('pap.settings');
-      if(raw){ const s = JSON.parse(raw); if(typeof s.showVerbinder==='boolean') state.showVerbinder = s.showVerbinder; }
+      if(!raw) return;
+      const s = JSON.parse(raw);
+      if(typeof s.showVerbinder==='boolean') state.showVerbinder = s.showVerbinder;
+      const grid = Number(s.grid);
+      if(Number.isFinite(grid) && grid > 0) state.grid = grid;
     }catch{}
   }
   function saveSettings(){
-    try{ localStorage.setItem('pap.settings', JSON.stringify({showVerbinder: state.showVerbinder})); }catch{}
+    try{
+      localStorage.setItem('pap.settings', JSON.stringify({showVerbinder: state.showVerbinder, grid: state.grid}));
+    }catch{}
   }
   const btnSettings = document.getElementById('btnSettings');
   const modal = document.getElementById('settingsModal');
   const closeBtn = document.getElementById('btnCloseSettings');
   const chkVerbinder = document.getElementById('toggleVerbinder');
   const verbinderTile = document.querySelector('.shape[data-shape="connector"]');
+  const selectGrid = document.getElementById('selectGrid');
 
   function updateVerbinderUI(){
     if(verbinderTile) verbinderTile.style.display = state.showVerbinder ? '' : 'none';
     if(chkVerbinder) chkVerbinder.checked = !!state.showVerbinder;
+  }
+  function updateGridUI(){
+    if(!selectGrid) return;
+    const value = String(state.grid);
+    let option = Array.from(selectGrid.options).find(opt=>opt.value===value);
+    if(!option){
+      option = document.createElement('option');
+      option.value = value;
+      option.textContent = `${value}px`;
+      selectGrid.appendChild(option);
+    }
+    selectGrid.value = value;
+  }
+  function applyGridToCanvas(){
+    document.documentElement.style.setProperty('--grid-step', `${state.grid}px`);
   }
   function setShowVerbinder(v){
     state.showVerbinder = !!v;
@@ -291,18 +329,32 @@
     saveSettings();
     showToast(state.showVerbinder ? 'Verbinder eingeblendet' : 'Verbinder ausgeblendet');
   }
+  function setGridSize(value){
+    const size = Number(value);
+    if(!Number.isFinite(size) || size <= 0) return;
+    if(state.grid === size){ updateGridUI(); return; }
+    state.grid = size;
+    applyGridToCanvas();
+    updateGridUI();
+    saveSettings();
+    markDirty();
+    showToast(`Snap-to-grid: ${size}px`);
+  }
 
   function openSettings(){ modal.classList.add('show'); modal.setAttribute('aria-hidden','false'); }
   function closeSettings(){ modal.classList.remove('show'); modal.setAttribute('aria-hidden','true'); }
 
   loadSettings();
+  applyGridToCanvas();
   updateVerbinderUI();
+  updateGridUI();
   restoreAutosaveIfAny();
 
   if(btnSettings) btnSettings.addEventListener('click', openSettings);
   if(closeBtn) closeBtn.addEventListener('click', closeSettings);
   if(modal) modal.addEventListener('click', (e)=>{ if(e.target===modal) closeSettings(); });
   if(chkVerbinder) chkVerbinder.addEventListener('change', (e)=> setShowVerbinder(e.target.checked));
+  if(selectGrid) selectGrid.addEventListener('change', (e)=> setGridSize(e.target.value));
   window.addEventListener('keydown', (e)=>{ if(e.key==='Escape' && modal?.classList.contains('show')) closeSettings(); });
 
   // Palette drag & drop
@@ -479,6 +531,7 @@
       const g = Number(data.meta.grid);
       if(Number.isFinite(g) && g > 0) state.grid = g;
     }
+    applyGridToCanvas();
 
     const validNodes = Array.isArray(data?.nodes) ? data.nodes : [];
     for(const rawNode of validNodes){
@@ -502,6 +555,7 @@
     state.idCounter = Math.max(1, nextIdSeed);
     select(null);
     state.pendingLinkFrom = null;
+    updateGridUI();
     state.dirty = false;
   }
 
