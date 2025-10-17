@@ -219,15 +219,42 @@
   }
   state.tabId = ensureTabId();
   const autosaveKey = ()=>`pap.autosave.${state.tabId}`;
+  const autosaveFallbackKey = 'pap.autosave.latest';
   const markDirty = ()=>{ state.dirty = true; };
   function saveAutosave(force=false){
-    try{ if(!force && !state.dirty) return; const json = serializeProject(); localStorage.setItem(autosaveKey(), json); state.dirty=false; }catch{}
+    if(!force && !state.dirty) return;
+    try{
+      const json = serializeProject();
+      localStorage.setItem(autosaveKey(), json);
+      localStorage.setItem(autosaveFallbackKey, json);
+      state.dirty = false;
+    }catch(err){
+      console.warn('Autosave konnte nicht gespeichert werden', err);
+    }
+  }
+  function readAutosaveSnapshot(){
+    const keys = [autosaveKey(), autosaveFallbackKey];
+    for(const key of keys){
+      try{
+        const raw = localStorage.getItem(key);
+        if(!raw) continue;
+        const data = JSON.parse(raw);
+        if(isValidSnapshot(data)) return data;
+        console.warn('Autosave verworfen (ungültiges Format)', key, data);
+      }catch(err){
+        console.warn('Autosave konnte nicht geladen werden', err);
+      }
+    }
+    return null;
   }
   function restoreAutosaveIfAny(){
-    try{ const raw = localStorage.getItem(autosaveKey()); if(raw){ const data = JSON.parse(raw); loadFromData(data); state.restoredFromAutosave = true; showToast('Autosave geladen'); } }
-    catch{}
+    const snapshot = readAutosaveSnapshot();
+    if(!snapshot) return;
+    loadFromData(snapshot);
+    state.restoredFromAutosave = true;
+    showToast('Autosave geladen');
   }
-  setInterval(()=>saveAutosave(false), 30000);
+  setInterval(()=>saveAutosave(true), 30000);
   window.addEventListener('beforeunload', ()=>{ try{ saveAutosave(true); }catch{} });
 
   // Resize SVG viewBox to pixel size for easy math
@@ -394,12 +421,23 @@
     return conn;
   }
   function renderConnector(conn){
+    if(!state.nodes.has(conn.fromId) || !state.nodes.has(conn.toId)){
+      const stray = document.getElementById(conn.id);
+      if(stray) stray.remove();
+      state.connectors.delete(conn.id);
+      return;
+    }
     let line=document.getElementById(conn.id);
     if(!line){ line=document.createElementNS('http://www.w3.org/2000/svg','line'); line.id=conn.id; line.classList.add('connector'); line.setAttribute('marker-end','url(#arrow)'); layerCons.appendChild(line); line.addEventListener('click', (e)=>{ e.stopPropagation(); select({type:'connector', id:conn.id}); }); }
     const a=centerOf(conn.fromId), b=centerOf(conn.toId);
+    if(!a || !b) return;
     line.setAttribute('x1',a.x); line.setAttribute('y1',a.y); line.setAttribute('x2',b.x); line.setAttribute('y2',b.y);
   }
-  function centerOf(nodeId){ const n=state.nodes.get(nodeId); return {x:n.x, y:n.y}; }
+  function centerOf(nodeId){
+    const n=state.nodes.get(nodeId);
+    if(!n) return null;
+    return {x:n.x, y:n.y};
+  }
   function updateConnectorsFor(nodeId){ for(const conn of state.connectors.values()){ if(conn.fromId===nodeId || conn.toId===nodeId) renderConnector(conn); } }
 
   // Keyboard
@@ -423,16 +461,83 @@
     return JSON.stringify({
       nodes:[...state.nodes.values()],
       connectors:[...state.connectors.values()],
-      meta:{grid:state.grid, savedAt:new Date().toISOString()}
+      meta:{grid:state.grid, savedAt:new Date().toISOString(), nextId:state.idCounter}
     }, null, 2);
   }
 
+  function isValidSnapshot(data){
+    return !!data && Array.isArray(data.nodes) && Array.isArray(data.connectors);
+  }
+
   function loadFromData(data){
-    state.nodes.clear(); state.connectors.clear();
-    layerNodes.innerHTML = ''; layerCons.innerHTML = '';
-    if(data?.nodes){ for(const n of data.nodes){ state.nodes.set(n.id, n); renderNode(n); } }
-    if(data?.connectors){ for(const c of data.connectors){ state.connectors.set(c.id, c); renderConnector(c); } }
+    state.nodes.clear();
+    state.connectors.clear();
+    layerNodes.innerHTML = '';
+    layerCons.innerHTML = '';
+
+    if(data?.meta?.grid){
+      const g = Number(data.meta.grid);
+      if(Number.isFinite(g) && g > 0) state.grid = g;
+    }
+
+    const validNodes = Array.isArray(data?.nodes) ? data.nodes : [];
+    for(const rawNode of validNodes){
+      if(!rawNode?.id) continue;
+      const node = sanitizeNode(rawNode);
+      state.nodes.set(node.id, node);
+      renderNode(node);
+    }
+
+    const validConnectors = Array.isArray(data?.connectors) ? data.connectors : [];
+    for(const rawConn of validConnectors){
+      if(!rawConn?.id || !state.nodes.has(rawConn.fromId) || !state.nodes.has(rawConn.toId)) continue;
+      const conn = sanitizeConnector(rawConn);
+      state.connectors.set(conn.id, conn);
+      renderConnector(conn);
+    }
+
+    let nextIdSeed = computeNextIdSeed();
+    const metaNextId = Number(data?.meta?.nextId);
+    if(Number.isFinite(metaNextId) && metaNextId > nextIdSeed) nextIdSeed = metaNextId;
+    state.idCounter = Math.max(1, nextIdSeed);
+    select(null);
+    state.pendingLinkFrom = null;
     state.dirty = false;
+  }
+
+  function sanitizeNode(raw){
+    const node = {...raw};
+    node.id = String(raw?.id ?? '');
+    node.type = typeof raw?.type === 'string' ? raw.type : 'process';
+    node.x = Number(raw?.x) || 0;
+    node.y = Number(raw?.y) || 0;
+    const width = Number(raw?.w);
+    const height = Number(raw?.h);
+    node.w = Number.isFinite(width) && width > 0 ? width : 160;
+    node.h = Number.isFinite(height) && height > 0 ? height : 70;
+    node.label = typeof raw?.label === 'string' ? raw.label : 'Knoten';
+    return node;
+  }
+
+  function sanitizeConnector(raw){
+    return {
+      id: String(raw?.id ?? ''),
+      fromId: String(raw?.fromId ?? ''),
+      toId: String(raw?.toId ?? '')
+    };
+  }
+
+  function computeNextIdSeed(){
+    let max = 0;
+    const take = (id)=>{
+      const match = /-(\d+)$/.exec(String(id));
+      if(!match) return;
+      const num = Number(match[1]);
+      if(Number.isFinite(num) && num > max) max = num;
+    };
+    for(const id of state.nodes.keys()) take(id);
+    for(const id of state.connectors.keys()) take(id);
+    return max + 1;
   }
 
   document.getElementById('fileImportJSON').addEventListener('change', (e)=>{
