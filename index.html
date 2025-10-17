@@ -82,7 +82,7 @@
     .modal-head h3{margin:0; font-size:16px}
     .modal-head button{border:1px solid #d1d5db; background:#fff; padding:6px 8px; border-radius:10px; cursor:pointer}
     .modal-head button:hover{background:#f3f4f6}
-    .modal .row{display:flex; align-items:center; justify-content:space-between; padding:10px 0; border-top:1px solid #e5e7eb}
+    .modal .row{display:flex; align-items:center; justify-content:space-between; gap:16px; padding:10px 0; border-top:1px solid #e5e7eb}
     .modal .row:first-of-type{border-top:none}
     .modal-tip{margin-top:12px; padding-top:10px; border-top:1px solid #e5e7eb; font-size:12px; color:var(--muted); line-height:1.4}
     .modal-tip strong{display:block; color:var(--ink); margin-bottom:4px}
@@ -92,6 +92,7 @@
     .switch .thumb{position:absolute; top:3px; left:3px; width:22px; height:22px; border-radius:50%; background:#fff; box-shadow:0 1px 3px rgba(0,0,0,.25); transition:.2s}
     .switch input:checked + .track{background:#3b82f6}
     .switch input:checked ~ .thumb{left:23px}
+    .arrows-hidden .connector{marker-end:none !important}
   </style>
 </head>
 <body>
@@ -153,8 +154,8 @@
     <div id="stage-wrap">
       <svg id="canvas" xmlns="http://www.w3.org/2000/svg">
         <defs>
-          <marker id="arrow" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto-start-reverse">
-            <path d="M0,0 L12,6 L0,12 z" fill="#64748b"></path>
+          <marker id="arrow" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto-start-reverse">
+            <path d="M0,0 L8,3 L0,6 z" fill="#64748b"></path>
           </marker>
         </defs>
         <g id="connectors"></g>
@@ -209,6 +210,17 @@
       </div>
       <div class="row">
         <div>
+          <div style="font-weight:600">Pfeilspitzen anzeigen</div>
+          <div style="font-size:12px; color:var(--muted)">Richtung der Verbindungen mit einer Pfeilspitze markieren</div>
+        </div>
+        <label class="switch">
+          <input type="checkbox" id="toggleArrows" checked>
+          <span class="track"></span>
+          <span class="thumb"></span>
+        </label>
+      </div>
+      <div class="row">
+        <div>
           <div style="font-weight:600">Verbinder anzeigen</div>
           <div style="font-size:12px; color:var(--muted)">Für Einsteiger standardmäßig aus – später zuschalten</div>
         </div>
@@ -240,6 +252,7 @@
     horizontalUnlimited: false,
     viewportWidth: 0,
     viewportHeight: 0,
+    showArrows: true,
     dirty: false,
     tabId: null,
     restoredFromAutosave: false
@@ -253,6 +266,7 @@
   const toast = document.getElementById('toast');
   const stageWrap = document.getElementById('stage-wrap');
   const mainArea = document.querySelector('main');
+  const ARROW_PADDING = 0;
 
   // --- Autosave (per tab) ---
   function ensureTabId(){
@@ -328,6 +342,7 @@
       if(Number.isFinite(grid) && grid > 0) state.grid = grid;
       if(typeof s.verticalUnlimited==='boolean') state.verticalUnlimited = s.verticalUnlimited;
       if(typeof s.horizontalUnlimited==='boolean') state.horizontalUnlimited = s.horizontalUnlimited;
+      if(typeof s.showArrows==='boolean') state.showArrows = s.showArrows;
     }catch{}
   }
   function saveSettings(){
@@ -336,7 +351,8 @@
         showVerbinder: state.showVerbinder,
         grid: state.grid,
         verticalUnlimited: state.verticalUnlimited,
-        horizontalUnlimited: state.horizontalUnlimited
+        horizontalUnlimited: state.horizontalUnlimited,
+        showArrows: state.showArrows
       }));
     }catch{}
   }
@@ -348,6 +364,7 @@
   const selectGrid = document.getElementById('selectGrid');
   const toggleVerticalUnlimited = document.getElementById('toggleVerticalUnlimited');
   const toggleHorizontalUnlimited = document.getElementById('toggleHorizontalUnlimited');
+  const toggleArrows = document.getElementById('toggleArrows');
 
   function updateVerbinderUI(){
     if(verbinderTile) verbinderTile.style.display = state.showVerbinder ? '' : 'none';
@@ -369,8 +386,16 @@
     if(toggleVerticalUnlimited) toggleVerticalUnlimited.checked = !!state.verticalUnlimited;
     if(toggleHorizontalUnlimited) toggleHorizontalUnlimited.checked = !!state.horizontalUnlimited;
   }
+  function updateArrowsUI(){
+    if(toggleArrows) toggleArrows.checked = !!state.showArrows;
+  }
   function applyGridToCanvas(){
     document.documentElement.style.setProperty('--grid-step', `${state.grid}px`);
+  }
+  function applyArrowsToCanvas(){
+    if(canvas){
+      canvas.classList.toggle('arrows-hidden', !state.showArrows);
+    }
   }
   const stageMargin = 200;
   let stageSizeRaf = 0;
@@ -450,6 +475,21 @@
     requestStageSizeUpdate();
     showToast(state.horizontalUnlimited ? 'Horizontale Begrenzung aus' : 'Horizontale Begrenzung an');
   }
+  function setShowArrows(v){
+    const next = !!v;
+    if(state.showArrows === next){
+      updateArrowsUI();
+      return;
+    }
+    state.showArrows = next;
+    updateArrowsUI();
+    saveSettings();
+    applyArrowsToCanvas();
+    for(const conn of state.connectors.values()){
+      renderConnector(conn);
+    }
+    showToast(state.showArrows ? 'Pfeilspitzen eingeblendet' : 'Pfeilspitzen ausgeblendet');
+  }
   function getCanvasSize(){
     const viewBox = canvas.getAttribute('viewBox');
     if(viewBox){
@@ -503,6 +543,8 @@
   updateVerbinderUI();
   updateGridUI();
   updateUnlimitedUI();
+  applyArrowsToCanvas();
+  updateArrowsUI();
   restoreAutosaveIfAny();
 
   if(btnSettings) btnSettings.addEventListener('click', openSettings);
@@ -512,6 +554,7 @@
   if(selectGrid) selectGrid.addEventListener('change', (e)=> setGridSize(e.target.value));
   if(toggleVerticalUnlimited) toggleVerticalUnlimited.addEventListener('change', (e)=> setVerticalUnlimited(e.target.checked));
   if(toggleHorizontalUnlimited) toggleHorizontalUnlimited.addEventListener('change', (e)=> setHorizontalUnlimited(e.target.checked));
+  if(toggleArrows) toggleArrows.addEventListener('change', (e)=> setShowArrows(e.target.checked));
   window.addEventListener('keydown', (e)=>{ if(e.key==='Escape' && modal?.classList.contains('show')) closeSettings(); });
 
   // Palette drag & drop
@@ -631,6 +674,60 @@
     markDirty();
     return conn;
   }
+  function nodeBlocksArrow(node){
+    if(!node) return true;
+    const type = String(node.type || '').toLowerCase();
+    if(type === 'note' || type === 'notiz' || type === 'annotation') return true;
+    if(type.includes('lane')) return true;
+    return false;
+  }
+  function shouldRenderArrow(conn){
+    if(!state.showArrows) return false;
+    const from = state.nodes.get(conn.fromId);
+    const to = state.nodes.get(conn.toId);
+    if(!from || !to) return false;
+    if(nodeBlocksArrow(from) || nodeBlocksArrow(to)) return false;
+    return true;
+  }
+  function pointOnNodeEdge(node, target){
+    const dx = target.x - node.x;
+    const dy = target.y - node.y;
+    if(dx===0 && dy===0) return {x:node.x, y:node.y};
+    const type = String(node.type || '').toLowerCase();
+    const len = Math.hypot(dx, dy) || 1;
+    if(type === 'connector'){
+      const r = Math.min(node.w, node.h)/2;
+      return {x: node.x + (dx/len)*r, y: node.y + (dy/len)*r};
+    }
+    if(type === 'decision'){
+      const hw = node.w/2;
+      const hh = node.h/2;
+      const scale = 1 / ((Math.abs(dx)/hw) + (Math.abs(dy)/hh));
+      return {x: node.x + dx*scale, y: node.y + dy*scale};
+    }
+    const hw = node.w/2;
+    const hh = node.h/2;
+    let scale = Infinity;
+    if(dx!==0) scale = Math.min(scale, hw/Math.abs(dx));
+    if(dy!==0) scale = Math.min(scale, hh/Math.abs(dy));
+    if(!isFinite(scale)) scale = 0;
+    return {x: node.x + dx*scale, y: node.y + dy*scale};
+  }
+  function connectorEndpoints(conn, allowArrow){
+    const fromNode = state.nodes.get(conn.fromId);
+    const toNode = state.nodes.get(conn.toId);
+    if(!fromNode || !toNode) return null;
+    const fromPoint = pointOnNodeEdge(fromNode, toNode);
+    const toPoint = pointOnNodeEdge(toNode, fromNode);
+    if(allowArrow){
+      const dx = toNode.x - fromNode.x;
+      const dy = toNode.y - fromNode.y;
+      const len = Math.hypot(dx, dy) || 1;
+      toPoint.x -= (dx/len) * ARROW_PADDING;
+      toPoint.y -= (dy/len) * ARROW_PADDING;
+    }
+    return {from: fromPoint, to: toPoint};
+  }
   function renderConnector(conn){
     if(!state.nodes.has(conn.fromId) || !state.nodes.has(conn.toId)){
       const stray = document.getElementById(conn.id);
@@ -639,15 +736,20 @@
       return;
     }
     let line=document.getElementById(conn.id);
-    if(!line){ line=document.createElementNS('http://www.w3.org/2000/svg','line'); line.id=conn.id; line.classList.add('connector'); line.setAttribute('marker-end','url(#arrow)'); layerCons.appendChild(line); line.addEventListener('click', (e)=>{ e.stopPropagation(); select({type:'connector', id:conn.id}); }); }
-    const a=centerOf(conn.fromId), b=centerOf(conn.toId);
-    if(!a || !b) return;
-    line.setAttribute('x1',a.x); line.setAttribute('y1',a.y); line.setAttribute('x2',b.x); line.setAttribute('y2',b.y);
-  }
-  function centerOf(nodeId){
-    const n=state.nodes.get(nodeId);
-    if(!n) return null;
-    return {x:n.x, y:n.y};
+    if(!line){
+      line=document.createElementNS('http://www.w3.org/2000/svg','line');
+      line.id=conn.id;
+      line.classList.add('connector');
+      layerCons.appendChild(line);
+      line.addEventListener('click', (e)=>{ e.stopPropagation(); select({type:'connector', id:conn.id}); });
+    }
+    const allowArrow = shouldRenderArrow(conn);
+    const endpoints = connectorEndpoints(conn, allowArrow);
+    if(!endpoints) return;
+    const {from, to} = endpoints;
+    line.setAttribute('x1',from.x); line.setAttribute('y1',from.y); line.setAttribute('x2',to.x); line.setAttribute('y2',to.y);
+    line.setAttribute('marker-end', allowArrow ? 'url(#arrow)' : 'none');
+    line.classList.toggle('has-arrow', allowArrow);
   }
   function updateConnectorsFor(nodeId){ for(const conn of state.connectors.values()){ if(conn.fromId===nodeId || conn.toId===nodeId) renderConnector(conn); } }
 
@@ -744,6 +846,7 @@
     updateUnlimitedUI();
     if(!state.verticalUnlimited || !state.horizontalUnlimited) enforceConstraintsForAllNodes();
     requestStageSizeUpdate();
+    applyArrowsToCanvas();
     state.dirty = false;
   }
 
