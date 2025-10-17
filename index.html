@@ -66,8 +66,9 @@
     .node.selected .node-shape{stroke:var(--node-selected); stroke-width:2.5}
     .node text{font:600 12px/1.2 system-ui,Segoe UI,Roboto,Arial,sans-serif; fill:#111827; pointer-events:none}
 
-    .connector{stroke:#64748b; stroke-width:2.25}
+    .connector{stroke:#64748b; stroke-width:2.25; stroke-linecap:round; pointer-events:stroke; cursor:pointer; transition:stroke-width .12s ease, stroke-opacity .12s ease}
     .connector.selected{stroke:var(--node-selected)}
+    .connector.hover{stroke-width:4; stroke-opacity:.8}
 
     .badge{position:absolute; top:10px; left:10px; background:#111827; color:#e5e7eb; font-size:11px; padding:4px 8px; border-radius:999px; opacity:.85}
 
@@ -93,6 +94,9 @@
     .switch input:checked + .track{background:#3b82f6}
     .switch input:checked ~ .thumb{left:23px}
     .arrows-hidden .connector{marker-end:none !important}
+    .context-menu{position:fixed; display:none; min-width:160px; background:#111827; color:#f8fafc; border-radius:10px; padding:6px 0; box-shadow:0 8px 24px rgba(15,23,42,.25); z-index:100; font-size:13px}
+    .context-menu button{width:100%; padding:8px 14px; background:none; border:none; color:inherit; text-align:left; cursor:pointer}
+    .context-menu button:hover{background:rgba(255,255,255,.1)}
   </style>
 </head>
 <body>
@@ -237,6 +241,13 @@
   </div>
 
   <div class="toast" id="toast"></div>
+  <div class="context-menu" id="connectorMenu" role="menu">
+    <button type="button" id="connectorDelete">Verbindung l&ouml;schen</button>
+    <button type="button" id="connectorToggleArrow">Pfeil ausblenden</button>
+  </div>
+  <div class="context-menu" id="nodeMenu" role="menu">
+    <button type="button" id="nodeDelete">Baustein l&ouml;schen</button>
+  </div>
 
   <script>
   // --- State ---
@@ -253,6 +264,8 @@
     viewportWidth: 0,
     viewportHeight: 0,
     showArrows: true,
+    contextConnectorId: null,
+    contextNodeId: null,
     dirty: false,
     tabId: null,
     restoredFromAutosave: false
@@ -267,6 +280,13 @@
   const stageWrap = document.getElementById('stage-wrap');
   const mainArea = document.querySelector('main');
   const ARROW_PADDING = 0;
+  const connectorMenu = document.getElementById('connectorMenu');
+  const connectorToggleArrow = document.getElementById('connectorToggleArrow');
+  const connectorDelete = document.getElementById('connectorDelete');
+  let connectorMenuVisible = false;
+  const nodeMenu = document.getElementById('nodeMenu');
+  const nodeDelete = document.getElementById('nodeDelete');
+  let nodeMenuVisible = false;
 
   // --- Autosave (per tab) ---
   function ensureTabId(){
@@ -395,6 +415,61 @@
   function applyArrowsToCanvas(){
     if(canvas){
       canvas.classList.toggle('arrows-hidden', !state.showArrows);
+    }
+  }
+  function closeConnectorMenu(){
+    if(connectorMenuVisible){
+      connectorMenuVisible = false;
+      state.contextConnectorId = null;
+      if(connectorMenu) connectorMenu.style.display = 'none';
+    }
+  }
+  function closeNodeMenu(){
+    if(nodeMenuVisible){
+      nodeMenuVisible = false;
+      state.contextNodeId = null;
+      if(nodeMenu) nodeMenu.style.display = 'none';
+    }
+  }
+  function closeAllMenus(){
+    closeConnectorMenu();
+    closeNodeMenu();
+  }
+  function openConnectorMenu(connId, clientX, clientY){
+    closeNodeMenu();
+    const conn = state.connectors.get(connId);
+    if(!conn){ closeConnectorMenu(); return; }
+    state.contextConnectorId = connId;
+    connectorMenuVisible = true;
+    const hasArrow = connectorHasArrow(conn);
+    if(connectorToggleArrow){
+      connectorToggleArrow.textContent = hasArrow ? 'Pfeil ausblenden' : 'Pfeil anzeigen';
+    }
+    if(connectorMenu) connectorMenu.style.display = 'block';
+    const menuRect = connectorMenu?.getBoundingClientRect() || {width:160,height:80};
+    let left = clientX + 4;
+    let top = clientY + 4;
+    if(left + menuRect.width > window.innerWidth) left = window.innerWidth - menuRect.width - 8;
+    if(top + menuRect.height > window.innerHeight) top = window.innerHeight - menuRect.height - 8;
+    if(connectorMenu){
+      connectorMenu.style.left = `${left}px`;
+      connectorMenu.style.top = `${top}px`;
+    }
+  }
+  function openNodeMenu(nodeId, clientX, clientY){
+    closeConnectorMenu();
+    if(!state.nodes.has(nodeId)){ closeNodeMenu(); return; }
+    state.contextNodeId = nodeId;
+    nodeMenuVisible = true;
+    if(nodeMenu) nodeMenu.style.display = 'block';
+    const menuRect = nodeMenu?.getBoundingClientRect() || {width:150,height:60};
+    let left = clientX + 4;
+    let top = clientY + 4;
+    if(left + menuRect.width > window.innerWidth) left = window.innerWidth - menuRect.width - 8;
+    if(top + menuRect.height > window.innerHeight) top = window.innerHeight - menuRect.height - 8;
+    if(nodeMenu){
+      nodeMenu.style.left = `${left}px`;
+      nodeMenu.style.top = `${top}px`;
     }
   }
   const stageMargin = 200;
@@ -556,6 +631,33 @@
   if(toggleHorizontalUnlimited) toggleHorizontalUnlimited.addEventListener('change', (e)=> setHorizontalUnlimited(e.target.checked));
   if(toggleArrows) toggleArrows.addEventListener('change', (e)=> setShowArrows(e.target.checked));
   window.addEventListener('keydown', (e)=>{ if(e.key==='Escape' && modal?.classList.contains('show')) closeSettings(); });
+  if(connectorToggleArrow) connectorToggleArrow.addEventListener('click', ()=>{
+    if(state.contextConnectorId){ toggleConnectorArrow(state.contextConnectorId); }
+    closeConnectorMenu();
+  });
+  if(connectorDelete) connectorDelete.addEventListener('click', ()=>{
+    if(state.contextConnectorId){ deleteConnector(state.contextConnectorId); }
+    closeConnectorMenu();
+  });
+  if(nodeDelete) nodeDelete.addEventListener('click', ()=>{
+    if(state.contextNodeId){ deleteNode(state.contextNodeId); }
+    closeNodeMenu();
+  });
+  if(connectorMenu){
+    connectorMenu.addEventListener('click', (e)=> e.stopPropagation());
+    connectorMenu.addEventListener('contextmenu', (e)=> e.preventDefault());
+  }
+  if(nodeMenu){
+    nodeMenu.addEventListener('click', (e)=> e.stopPropagation());
+    nodeMenu.addEventListener('contextmenu', (e)=> e.preventDefault());
+  }
+  document.addEventListener('click', (e)=>{
+    if(connectorMenuVisible && connectorMenu && !connectorMenu.contains(e.target)) closeConnectorMenu();
+    if(nodeMenuVisible && nodeMenu && !nodeMenu.contains(e.target)) closeNodeMenu();
+  });
+  window.addEventListener('resize', closeAllMenus);
+  window.addEventListener('blur', closeAllMenus);
+  if(mainArea) mainArea.addEventListener('scroll', closeAllMenus);
 
   // Palette drag & drop
   $$('.shape').forEach(el=>{
@@ -608,6 +710,12 @@
       g.addEventListener('mousedown', startDragNode);
       g.addEventListener('dblclick', renameNode);
       g.addEventListener('click', nodeClick);
+      g.addEventListener('contextmenu', (e)=>{
+        e.preventDefault();
+        e.stopPropagation();
+        select({type:'node', id:node.id});
+        openNodeMenu(node.id, e.clientX, e.clientY);
+      });
     }
     g.setAttribute('transform', `translate(${node.x - node.w/2}, ${node.y - node.h/2})`);
     g.innerHTML = '';
@@ -642,7 +750,9 @@
   }
 
   function nodeClick(e){
-    e.stopPropagation(); const id = this.id;
+    e.stopPropagation();
+    closeAllMenus();
+    const id = this.id;
     if(e.shiftKey){
       if(!state.pendingLinkFrom){ state.pendingLinkFrom = id; select({type:'node', id}); showToast('Quelle gewählt – Ziel anklicken'); }
       else if(state.pendingLinkFrom && state.pendingLinkFrom!==id){ const conn = createConnector(state.pendingLinkFrom, id); renderConnector(conn); state.pendingLinkFrom=null; select({type:'connector', id:conn.id}); showToast('Verbunden ✓'); }
@@ -651,10 +761,17 @@
     select({type:'node', id});
   }
 
-  canvas.addEventListener('click', (e)=>{ if(e.target===canvas){ select(null); state.pendingLinkFrom=null; }});
+  canvas.addEventListener('click', (e)=>{
+    if(e.target===canvas){
+      select(null);
+      state.pendingLinkFrom=null;
+    }
+    closeAllMenus();
+  });
 
   // Rename
   function renameNode(){
+    closeAllMenus();
     const id = this.id; const node = state.nodes.get(id);
     const text = prompt('Neuer Text für diese Form:', node.label);
     if(text!==null){ node.label = text.trim() || node.label; renderNode(node); markDirty(); }
@@ -662,17 +779,30 @@
 
   // Dragging
   let drag=null;
-  function startDragNode(e){ e.stopPropagation(); const id=this.id; const node=state.nodes.get(id); select({type:'node',id}); const start=clientToSvg(e.clientX,e.clientY); drag={id, ox:node.x, oy:node.y, sx:start.x, sy:start.y}; window.addEventListener('mousemove', onDragMove); window.addEventListener('mouseup', endDrag); }
+  function startDragNode(e){
+    e.stopPropagation();
+    closeAllMenus();
+    const id=this.id;
+    const node=state.nodes.get(id);
+    select({type:'node',id});
+    const start=clientToSvg(e.clientX,e.clientY);
+    drag={id, ox:node.x, oy:node.y, sx:start.x, sy:start.y};
+    window.addEventListener('mousemove', onDragMove);
+    window.addEventListener('mouseup', endDrag);
+  }
   function onDragMove(e){ if(!drag) return; const pt=clientToSvg(e.clientX,e.clientY); const dx=pt.x-drag.sx, dy=pt.y-drag.sy; const node=state.nodes.get(drag.id); if(!node) return; const [nx,ny]=snap(drag.ox+dx, drag.oy+dy); node.x=nx; node.y=ny; applyNodeConstraints(node); renderNode(node); }
   function endDrag(){ window.removeEventListener('mousemove', onDragMove); window.removeEventListener('mouseup', endDrag); drag=null; markDirty(); }
 
   // Connectors
   function createConnector(fromId, toId){
     const id = nextId('c');
-    const conn = { id, fromId, toId };
+    const conn = { id, fromId, toId, arrow: true };
     state.connectors.set(id, conn);
     markDirty();
     return conn;
+  }
+  function connectorHasArrow(conn){
+    return conn?.arrow !== false;
   }
   function nodeBlocksArrow(node){
     if(!node) return true;
@@ -683,6 +813,7 @@
   }
   function shouldRenderArrow(conn){
     if(!state.showArrows) return false;
+    if(!connectorHasArrow(conn)) return false;
     const from = state.nodes.get(conn.fromId);
     const to = state.nodes.get(conn.toId);
     if(!from || !to) return false;
@@ -728,6 +859,42 @@
     }
     return {from: fromPoint, to: toPoint};
   }
+  function bindConnectorEvents(conn, line, hit){
+    if(!line || line.dataset.bound === '1') return;
+    const id = conn.id;
+    const onClick = (e)=>{
+      e.stopPropagation();
+      closeAllMenus();
+      select({type:'connector', id});
+    };
+    const openMenu = (e)=>{
+      e.preventDefault();
+      e.stopPropagation();
+      select({type:'connector', id});
+      openConnectorMenu(id, e.clientX, e.clientY);
+    };
+    const onEnter = ()=> line.classList.add('hover');
+    const onLeave = ()=> line.classList.remove('hover');
+    const attach = (target)=>{
+      if(!target) return;
+      target.addEventListener('click', onClick);
+      target.addEventListener('contextmenu', openMenu);
+      target.addEventListener('dblclick', openMenu);
+      target.addEventListener('mouseenter', onEnter);
+      target.addEventListener('mouseleave', onLeave);
+    };
+    attach(line);
+    attach(hit);
+    line.dataset.bound = '1';
+    if(hit) hit.dataset.bound = '1';
+  }
+  function toggleConnectorArrow(id){
+    const conn = state.connectors.get(id);
+    if(!conn) return;
+    conn.arrow = connectorHasArrow(conn) ? false : true;
+    renderConnector(conn);
+    markDirty();
+  }
   function renderConnector(conn){
     if(!state.nodes.has(conn.fromId) || !state.nodes.has(conn.toId)){
       const stray = document.getElementById(conn.id);
@@ -735,19 +902,31 @@
       state.connectors.delete(conn.id);
       return;
     }
+    let hit=document.getElementById(`${conn.id}-hit`);
+    if(!hit){
+      hit=document.createElementNS('http://www.w3.org/2000/svg','line');
+      hit.id=`${conn.id}-hit`;
+      hit.setAttribute('stroke','transparent');
+      hit.setAttribute('stroke-width','16');
+      hit.setAttribute('pointer-events','stroke');
+      hit.setAttribute('stroke-linecap','round');
+      hit.style.cursor='pointer';
+      layerCons.appendChild(hit);
+    }
     let line=document.getElementById(conn.id);
     if(!line){
       line=document.createElementNS('http://www.w3.org/2000/svg','line');
       line.id=conn.id;
       line.classList.add('connector');
       layerCons.appendChild(line);
-      line.addEventListener('click', (e)=>{ e.stopPropagation(); select({type:'connector', id:conn.id}); });
     }
+    bindConnectorEvents(conn, line, hit);
     const allowArrow = shouldRenderArrow(conn);
     const endpoints = connectorEndpoints(conn, allowArrow);
     if(!endpoints) return;
     const {from, to} = endpoints;
     line.setAttribute('x1',from.x); line.setAttribute('y1',from.y); line.setAttribute('x2',to.x); line.setAttribute('y2',to.y);
+    hit.setAttribute('x1',from.x); hit.setAttribute('y1',from.y); hit.setAttribute('x2',to.x); hit.setAttribute('y2',to.y);
     line.setAttribute('marker-end', allowArrow ? 'url(#arrow)' : 'none');
     line.classList.toggle('has-arrow', allowArrow);
   }
@@ -755,6 +934,12 @@
 
   // Keyboard
   window.addEventListener('keydown', (e)=>{
+    if(e.key==='Escape'){
+      if(connectorMenuVisible || nodeMenuVisible){
+        closeAllMenus();
+        return;
+      }
+    }
     if(e.key==='Delete' || e.key==='Backspace'){
       if(state.selection){ if(state.selection.type==='node') deleteNode(state.selection.id); if(state.selection.type==='connector') deleteConnector(state.selection.id); select(null); }
     }
@@ -769,10 +954,19 @@
     for(const [cid,conn] of [...state.connectors]){ if(conn.fromId===id || conn.toId===id) deleteConnector(cid); }
     state.nodes.delete(id);
     const el=document.getElementById(id); if(el) el.remove();
+    if(state.contextNodeId === id) closeNodeMenu();
     markDirty();
     requestStageSizeUpdate();
   }
-  function deleteConnector(id){ state.connectors.delete(id); const el=document.getElementById(id); if(el) el.remove(); markDirty(); }
+  function deleteConnector(id){
+    state.connectors.delete(id);
+    const el=document.getElementById(id);
+    if(el) el.remove();
+    if(state.contextConnectorId === id) closeConnectorMenu();
+    const hit=document.getElementById(`${id}-hit`);
+    if(hit) hit.remove();
+    markDirty();
+  }
   function duplicateNode(id){
     const n=state.nodes.get(id);
     if(!n) return;
@@ -868,7 +1062,8 @@
     return {
       id: String(raw?.id ?? ''),
       fromId: String(raw?.fromId ?? ''),
-      toId: String(raw?.toId ?? '')
+      toId: String(raw?.toId ?? ''),
+      arrow: raw?.arrow === false ? false : true
     };
   }
 
