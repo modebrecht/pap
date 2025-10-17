@@ -1,0 +1,532 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>PAP Builder (Programmablaufplan) – v1.3 (Autosave & Bugfix)</title>
+  <style>
+    :root{
+      --bg:#f6f7fb;
+      --ink:#1f2937;
+      --muted:#6b7280;
+      --accent:#16a34a; /* green */
+      --accent-2:#06b6d4; /* cyan */
+      --panel:#46474A; /* anthracite */
+      --panel-ink:#f1f5f9;
+      --node:#ffffff;
+      --node-stroke:#cbd5e1;
+      --node-selected:#3b82f6;
+      --shadow:0 10px 30px rgba(0,0,0,.08);
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      margin:0; background:var(--bg); color:var(--ink); font:14px/1.4 system-ui,-apple-system,Segoe UI,Roboto,Inter,Arial,sans-serif;
+      display:grid; grid-template-columns:280px 1fr; grid-template-rows:56px 1fr; grid-template-areas:
+      "header header"
+      "sidebar main";
+    }
+    header{grid-area:header; display:flex; align-items:center; gap:12px; padding:10px 14px; background:#fff; box-shadow:var(--shadow); position:sticky; top:0; z-index:2}
+    header h1{font-size:16px; margin:0; font-weight:700}
+    header .spacer{flex:1}
+    header button, header .file-btn-label{
+      border:1px solid #d1d5db; background:#fff; padding:8px 10px; border-radius:10px; cursor:pointer; transition:.15s ease; font-weight:600
+    }
+    header button:hover, header .file-btn-label:hover{background:#f3f4f6}
+    header .file-input{display:none}
+
+    /* Export dropdown */
+    .dropdown{position:relative}
+    .dropdown .menu{position:absolute; right:0; top:calc(100% + 6px); background:#fff; border:1px solid #e5e7eb; border-radius:12px; box-shadow:var(--shadow); display:none; min-width:220px; overflow:hidden; z-index:5}
+    .dropdown .menu.show{display:block}
+    .dropdown .menu button{display:block; width:100%; padding:10px 12px; text-align:left; border:0; background:#fff; cursor:pointer; font-weight:600}
+    .dropdown .menu button:hover{background:#f3f4f6}
+
+    aside{grid-area:sidebar; background:var(--panel); color:var(--panel-ink); padding:14px; display:flex; flex-direction:column; gap:14px; box-shadow: inset -1px 0 0 rgba(255,255,255,.06)}
+    .palette h2{margin:4px 0 8px; font-size:13px; text-transform:uppercase; letter-spacing:.08em; color:#d1d5db}
+    .shape{background:rgba(255,255,255,.1); border:1px solid rgba(255,255,255,.2); border-radius:12px; padding:10px; display:flex; align-items:center; gap:10px; cursor:grab; user-select:none}
+    .shape + .shape{margin-top:10px}
+    .shape svg{width:36px; height:28px}
+    .shape strong{color:#fff}
+    .shape[draggable="true"]:active{cursor:grabbing}
+
+    main{grid-area:main; position:relative; overflow:hidden}
+    #stage-wrap{position:absolute; inset:0}
+
+    /* SVG canvas + grid */
+    #canvas{width:100%; height:100%; display:block; background:
+      linear-gradient(transparent 19px, #e5e7eb 20px),
+      linear-gradient(90deg, transparent 19px, #e5e7eb 20px);
+      background-size:20px 20px; background-position:0 0;
+    }
+
+    .hud{position:absolute; bottom:12px; left:12px; background:rgba(17,24,39,.9); color:#e5e7eb; padding:8px 10px; border-radius:10px; font-size:12px; box-shadow:var(--shadow)}
+    .hud kbd{background:#111827; color:#e5e7eb; border:1px solid #374151; border-bottom-width:2px; padding:2px 6px; border-radius:6px; font-weight:700}
+
+    .node-base{filter:drop-shadow(0 2px 6px rgba(0,0,0,.08))}
+    .node-shape{fill:var(--node); stroke:var(--node-stroke); stroke-width:2}
+    .node.selected .node-shape{stroke:var(--node-selected); stroke-width:2.5}
+    .node text{font:600 12px/1.2 system-ui,Segoe UI,Roboto,Arial,sans-serif; fill:#111827; pointer-events:none}
+
+    .connector{stroke:#64748b; stroke-width:2.25}
+    .connector.selected{stroke:var(--node-selected)}
+
+    .badge{position:absolute; top:10px; left:10px; background:#111827; color:#e5e7eb; font-size:11px; padding:4px 8px; border-radius:999px; opacity:.85}
+
+    .toast{position:fixed; right:12px; bottom:12px; background:#111827; color:#e5e7eb; padding:10px 12px; border-radius:12px; font-weight:600; opacity:0; transform:translateY(8px); transition:.2s ease}
+    .toast.show{opacity:1; transform:translateY(0)}
+
+    /* Settings modal */
+    .modal-backdrop{position:fixed; inset:0; background:rgba(0,0,0,.35); display:none; align-items:center; justify-content:center; z-index:50}
+    .modal-backdrop.show{display:flex}
+    .modal{background:#fff; width:min(520px, calc(100% - 32px)); border-radius:14px; box-shadow:var(--shadow); padding:16px}
+    .modal-head{display:flex; align-items:center; gap:12px; justify-content:space-between; margin-bottom:6px}
+    .modal-head h3{margin:0; font-size:16px}
+    .modal-head button{border:1px solid #d1d5db; background:#fff; padding:6px 8px; border-radius:10px; cursor:pointer}
+    .modal-head button:hover{background:#f3f4f6}
+    .modal .row{display:flex; align-items:center; justify-content:space-between; padding:10px 0; border-top:1px solid #e5e7eb}
+    .modal .row:first-of-type{border-top:none}
+    .switch{position:relative; width:48px; height:28px; flex:0 0 auto}
+    .switch input{display:none}
+    .switch .track{position:absolute; inset:0; background:#e5e7eb; border-radius:999px; transition:.2s}
+    .switch .thumb{position:absolute; top:3px; left:3px; width:22px; height:22px; border-radius:50%; background:#fff; box-shadow:0 1px 3px rgba(0,0,0,.25); transition:.2s}
+    .switch input:checked + .track{background:#3b82f6}
+    .switch input:checked ~ .thumb{left:23px}
+  </style>
+</head>
+<body>
+  <header>
+    <h1>🧭 PAP&nbsp;Builder</h1>
+    <div class="spacer"></div>
+    <button id="btnSettings" title="Einstellungen">⚙️ Einstellungen</button>
+    <!-- Export dropdown -->
+    <div class="dropdown" id="exportDropdown">
+      <button id="btnExport" title="Export">Export ▾</button>
+      <div class="menu" id="menuExport" role="menu" aria-hidden="true">
+        <button type="button" data-action="export-json">Export JSON</button>
+        <button type="button" data-action="export-png">Export PNG</button>
+        <button type="button" data-action="export-png-grid">Export PNG + Linien</button>
+      </div>
+    </div>
+    <label class="file-btn-label" for="fileImportJSON" title="Projekt aus JSON laden">Import JSON</label>
+    <input id="fileImportJSON" class="file-input" type="file" accept="application/json" />
+  </header>
+
+  <aside>
+    <div class="palette">
+      <h2>Bausteine</h2>
+      <div class="shape" draggable="true" data-shape="terminator" title="Start/Ende">
+        <svg viewBox="0 0 100 60" aria-hidden="true"><rect x="5" y="10" width="90" height="40" rx="20" fill="#fff" stroke="#cbd5e1" stroke-width="4"/></svg>
+        <div><strong>Start/Ende</strong><div style="opacity:.8;font-size:12px">Terminator</div></div>
+      </div>
+      <div class="shape" draggable="true" data-shape="process" title="Prozess">
+        <svg viewBox="0 0 100 60" aria-hidden="true"><rect x="5" y="10" width="90" height="40" rx="8" fill="#fff" stroke="#cbd5e1" stroke-width="4"/></svg>
+        <div><strong>Prozess</strong><div style="opacity:.8;font-size:12px">Anweisung</div></div>
+      </div>
+      <div class="shape" draggable="true" data-shape="decision" title="Entscheidung">
+        <svg viewBox="0 0 100 60" aria-hidden="true"><polygon points="50,5 95,30 50,55 5,30" fill="#fff" stroke="#cbd5e1" stroke-width="4"/></svg>
+        <div><strong>Entscheidung</strong><div style="opacity:.8;font-size:12px">Ja/Nein</div></div>
+      </div>
+      <div class="shape" draggable="true" data-shape="io" title="Ein-/Ausgabe">
+        <svg viewBox="0 0 100 60" aria-hidden="true"><polygon points="20,10 95,10 80,50 5,50" fill="#fff" stroke="#cbd5e1" stroke-width="4"/></svg>
+        <div><strong>Ein-/Ausgabe</strong><div style="opacity:.8;font-size:12px">Parallelogramm</div></div>
+      </div>
+      <div class="shape" draggable="true" data-shape="connector" title="Verbinder">
+        <svg viewBox="0 0 100 60" aria-hidden="true"><circle cx="50" cy="30" r="16" fill="#fff" stroke="#cbd5e1" stroke-width="4"/></svg>
+        <div><strong>Verbinder</strong><div style="opacity:.8;font-size:12px">Kreis</div></div>
+      </div>
+    </div>
+    <div class="palette">
+      <h2>Aktionen</h2>
+      <div style="font-size:13px; color:#e5e7eb; opacity:.9; line-height:1.5">
+        • Baustein links greifen → in die Fläche ziehen<br>
+        • In der Fläche verschieben: Maus ziehen<br>
+        • <b>Doppelklick</b> auf Form → umbenennen<br>
+        • <b>Shift</b> + Klick zwei Formen → Pfeil verbinden<br>
+        • <b>Entf</b> → ausgewählte Form/Verbindung löschen<br>
+        • <b>Strg/⌘</b>+<b>D</b> → duplizieren
+      </div>
+    </div>
+  </aside>
+
+  <main>
+    <div id="stage-wrap">
+      <svg id="canvas" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <marker id="arrow" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto-start-reverse">
+            <path d="M0,0 L12,6 L0,12 z" fill="#64748b"></path>
+          </marker>
+        </defs>
+        <g id="connectors"></g>
+        <g id="nodes"></g>
+      </svg>
+      <div class="hud">Tipp: <kbd>Doppelklick</kbd> um Text zu ändern · <kbd>Shift</kbd>→ zwei Formen anklicken für Verbindung · <kbd>Entf</kbd> zum Löschen</div>
+      <div class="badge">Snap to grid 20px</div>
+    </div>
+  </main>
+
+  <div class="modal-backdrop" id="settingsModal" aria-hidden="true">
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="settingsTitle">
+      <div class="modal-head">
+        <h3 id="settingsTitle">Einstellungen</h3>
+        <button id="btnCloseSettings" aria-label="Schließen">✕</button>
+      </div>
+      <div class="row">
+        <div>
+          <div style="font-weight:600">Verbinder anzeigen</div>
+          <div style="font-size:12px; color:var(--muted)">Für Einsteiger standardmäßig aus – später zuschalten</div>
+        </div>
+        <label class="switch">
+          <input type="checkbox" id="toggleVerbinder">
+          <span class="track"></span>
+          <span class="thumb"></span>
+        </label>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <script>
+  // --- State ---
+  const state = {
+    nodes: new Map(),
+    connectors: new Map(),
+    selection: null,
+    pendingLinkFrom: null,
+    grid: 20,
+    idCounter: 1,
+    showVerbinder: false,
+    dirty: false,
+    tabId: null,
+    restoredFromAutosave: false
+  };
+
+  const $ = (sel,root=document)=>root.querySelector(sel);
+  const $$ = (sel,root=document)=>Array.from(root.querySelectorAll(sel));
+  const canvas = document.getElementById('canvas');
+  const layerNodes = document.getElementById('nodes');
+  const layerCons = document.getElementById('connectors');
+  const toast = document.getElementById('toast');
+
+  // --- Autosave (per tab) ---
+  function ensureTabId(){
+    try{
+      let id = sessionStorage.getItem('pap.tabId');
+      if(!id){ id = (window.crypto?.randomUUID?.() || (Date.now().toString(36)+Math.random().toString(36).slice(2))); sessionStorage.setItem('pap.tabId', id); }
+      return id;
+    }catch{ return 'tab-'+Date.now().toString(36); }
+  }
+  state.tabId = ensureTabId();
+  const autosaveKey = ()=>`pap.autosave.${state.tabId}`;
+  const markDirty = ()=>{ state.dirty = true; };
+  function saveAutosave(force=false){
+    try{ if(!force && !state.dirty) return; const json = serializeProject(); localStorage.setItem(autosaveKey(), json); state.dirty=false; }catch{}
+  }
+  function restoreAutosaveIfAny(){
+    try{ const raw = localStorage.getItem(autosaveKey()); if(raw){ const data = JSON.parse(raw); loadFromData(data); state.restoredFromAutosave = true; showToast('Autosave geladen'); } }
+    catch{}
+  }
+  setInterval(()=>saveAutosave(false), 30000);
+  window.addEventListener('beforeunload', ()=>{ try{ saveAutosave(true); }catch{} });
+
+  // Resize SVG viewBox to pixel size for easy math
+  const resizeCanvas = () => {
+    const r = canvas.getBoundingClientRect();
+    canvas.setAttribute('viewBox', `0 0 ${Math.floor(r.width)} ${Math.floor(r.height)}`);
+  };
+  new ResizeObserver(resizeCanvas).observe(document.body);
+  window.addEventListener('load', resizeCanvas);
+
+  // Einstellungen (Modal) & Verbinder-Präferenz
+  function loadSettings(){
+    try{
+      const raw = localStorage.getItem('pap.settings');
+      if(raw){ const s = JSON.parse(raw); if(typeof s.showVerbinder==='boolean') state.showVerbinder = s.showVerbinder; }
+    }catch{}
+  }
+  function saveSettings(){
+    try{ localStorage.setItem('pap.settings', JSON.stringify({showVerbinder: state.showVerbinder})); }catch{}
+  }
+  const btnSettings = document.getElementById('btnSettings');
+  const modal = document.getElementById('settingsModal');
+  const closeBtn = document.getElementById('btnCloseSettings');
+  const chkVerbinder = document.getElementById('toggleVerbinder');
+  const verbinderTile = document.querySelector('.shape[data-shape="connector"]');
+
+  function updateVerbinderUI(){
+    if(verbinderTile) verbinderTile.style.display = state.showVerbinder ? '' : 'none';
+    if(chkVerbinder) chkVerbinder.checked = !!state.showVerbinder;
+  }
+  function setShowVerbinder(v){
+    state.showVerbinder = !!v;
+    updateVerbinderUI();
+    saveSettings();
+    showToast(state.showVerbinder ? 'Verbinder eingeblendet' : 'Verbinder ausgeblendet');
+  }
+
+  function openSettings(){ modal.classList.add('show'); modal.setAttribute('aria-hidden','false'); }
+  function closeSettings(){ modal.classList.remove('show'); modal.setAttribute('aria-hidden','true'); }
+
+  loadSettings();
+  updateVerbinderUI();
+  restoreAutosaveIfAny();
+
+  if(btnSettings) btnSettings.addEventListener('click', openSettings);
+  if(closeBtn) closeBtn.addEventListener('click', closeSettings);
+  if(modal) modal.addEventListener('click', (e)=>{ if(e.target===modal) closeSettings(); });
+  if(chkVerbinder) chkVerbinder.addEventListener('change', (e)=> setShowVerbinder(e.target.checked));
+  window.addEventListener('keydown', (e)=>{ if(e.key==='Escape' && modal?.classList.contains('show')) closeSettings(); });
+
+  // Palette drag & drop
+  $$('.shape').forEach(el=>{
+    el.addEventListener('dragstart', (e)=>{
+      e.dataTransfer.setData('text/plain', el.dataset.shape);
+      e.dataTransfer.effectAllowed = 'copy';
+    });
+  });
+
+  canvas.addEventListener('dragover', (e)=>{ e.preventDefault(); });
+  canvas.addEventListener('drop', (e)=>{
+    e.preventDefault();
+    const type = e.dataTransfer.getData('text/plain');
+    if(!type) return;
+    if(type==='connector' && !state.showVerbinder){ showToast('Einsteiger-Modus: Verbinder deaktiviert'); return; }
+    const pt = clientToSvg(e.clientX, e.clientY);
+    const [x,y] = snap(pt.x, pt.y);
+    const node = createNode(type, x, y);
+    renderNode(node);
+    select({type:'node', id:node.id});
+    showToast('Baustein hinzugefügt');
+  });
+
+  function clientToSvg(clientX, clientY){
+    const r = canvas.getBoundingClientRect();
+    return { x: clientX - r.left, y: clientY - r.top };
+  }
+  function snap(x,y){
+    const g = state.grid; return [Math.round(x/g)*g, Math.round(y/g)*g];
+  }
+
+  // Node creation & rendering
+  function nextId(prefix){ return `${prefix}-${state.idCounter++}`; }
+
+  function createNode(type, x, y){
+    const base = { w:160, h:70 };
+    let label = { terminator:'Start/Ende', process:'Prozess', decision:'Entscheidung?', io:'Ein-/Ausgabe', connector:'Verbinder' }[type] || 'Knoten';
+    const node = { id: nextId('n'), type, x, y, w: base.w, h: base.h, label };
+    state.nodes.set(node.id, node);
+    markDirty();
+    return node;
+  }
+
+  function renderNode(node){
+    let g = document.getElementById(node.id);
+    if(!g){
+      g = document.createElementNS('http://www.w3.org/2000/svg','g');
+      g.id = node.id; g.classList.add('node','node-base'); layerNodes.appendChild(g);
+      g.addEventListener('mousedown', startDragNode);
+      g.addEventListener('dblclick', renameNode);
+      g.addEventListener('click', nodeClick);
+    }
+    g.setAttribute('transform', `translate(${node.x - node.w/2}, ${node.y - node.h/2})`);
+    g.innerHTML = '';
+
+    const shape = shapeElement(node); shape.setAttribute('class','node-shape'); g.appendChild(shape);
+
+    const text = document.createElementNS('http://www.w3.org/2000/svg','text');
+    text.setAttribute('x', node.w/2); text.setAttribute('y', node.h/2);
+    text.setAttribute('text-anchor','middle'); text.setAttribute('dominant-baseline','middle');
+    text.textContent = node.label; g.appendChild(text);
+
+    updateConnectorsFor(node.id);
+  }
+
+  function shapeElement(node){
+    const {w,h,type} = node; const ns = 'http://www.w3.org/2000/svg';
+    if(type==='process'){ const r = document.createElementNS(ns,'rect'); r.setAttribute('x',0); r.setAttribute('y',0); r.setAttribute('width',w); r.setAttribute('height',h); r.setAttribute('rx',10); return r; }
+    if(type==='terminator'){ const r = document.createElementNS(ns,'rect'); r.setAttribute('x',0); r.setAttribute('y',0); r.setAttribute('width',w); r.setAttribute('height',h); r.setAttribute('rx', Math.min(30, h/2)); return r; }
+    if(type==='decision'){ const p = document.createElementNS(ns,'polygon'); p.setAttribute('points', `${w/2},0 ${w},${h/2} ${w/2},${h} 0,${h/2}`); return p; }
+    if(type==='io'){ const skew=26; const p = document.createElementNS(ns,'polygon'); p.setAttribute('points', `${skew},0 ${w},0 ${w-skew},${h} 0,${h}`); return p; }
+    if(type==='connector'){ const c = document.createElementNS(ns,'circle'); c.setAttribute('cx',w/2); c.setAttribute('cy',h/2); c.setAttribute('r',Math.min(w,h)/3); return c; }
+    const r = document.createElementNS(ns,'rect'); r.setAttribute('x',0); r.setAttribute('y',0); r.setAttribute('width',w); r.setAttribute('height',h); r.setAttribute('rx',8); return r;
+  }
+
+  // Selection
+  function select(sel){
+    $$('.selected', canvas).forEach(el=>el.classList.remove('selected'));
+    state.selection = sel; if(!sel) return;
+    if(sel.type==='node'){ const g = document.getElementById(sel.id); if(g) g.classList.add('selected'); }
+    else if(sel.type==='connector'){ const c = document.getElementById(sel.id); if(c) c.classList.add('selected'); }
+  }
+
+  function nodeClick(e){
+    e.stopPropagation(); const id = this.id;
+    if(e.shiftKey){
+      if(!state.pendingLinkFrom){ state.pendingLinkFrom = id; select({type:'node', id}); showToast('Quelle gewählt – Ziel anklicken'); }
+      else if(state.pendingLinkFrom && state.pendingLinkFrom!==id){ const conn = createConnector(state.pendingLinkFrom, id); renderConnector(conn); state.pendingLinkFrom=null; select({type:'connector', id:conn.id}); showToast('Verbunden ✓'); }
+      return;
+    }
+    select({type:'node', id});
+  }
+
+  canvas.addEventListener('click', (e)=>{ if(e.target===canvas){ select(null); state.pendingLinkFrom=null; }});
+
+  // Rename
+  function renameNode(){
+    const id = this.id; const node = state.nodes.get(id);
+    const text = prompt('Neuer Text für diese Form:', node.label);
+    if(text!==null){ node.label = text.trim() || node.label; renderNode(node); markDirty(); }
+  }
+
+  // Dragging
+  let drag=null;
+  function startDragNode(e){ e.stopPropagation(); const id=this.id; const node=state.nodes.get(id); select({type:'node',id}); const start=clientToSvg(e.clientX,e.clientY); drag={id, ox:node.x, oy:node.y, sx:start.x, sy:start.y}; window.addEventListener('mousemove', onDragMove); window.addEventListener('mouseup', endDrag); }
+  function onDragMove(e){ if(!drag) return; const pt=clientToSvg(e.clientX,e.clientY); const dx=pt.x-drag.sx, dy=pt.y-drag.sy; const node=state.nodes.get(drag.id); const [nx,ny]=snap(drag.ox+dx, drag.oy+dy); node.x=nx; node.y=ny; renderNode(node); }
+  function endDrag(){ window.removeEventListener('mousemove', onDragMove); window.removeEventListener('mouseup', endDrag); drag=null; markDirty(); }
+
+  // Connectors
+  function createConnector(fromId, toId){
+    const id = nextId('c');
+    const conn = { id, fromId, toId };
+    state.connectors.set(id, conn);
+    markDirty();
+    return conn;
+  }
+  function renderConnector(conn){
+    let line=document.getElementById(conn.id);
+    if(!line){ line=document.createElementNS('http://www.w3.org/2000/svg','line'); line.id=conn.id; line.classList.add('connector'); line.setAttribute('marker-end','url(#arrow)'); layerCons.appendChild(line); line.addEventListener('click', (e)=>{ e.stopPropagation(); select({type:'connector', id:conn.id}); }); }
+    const a=centerOf(conn.fromId), b=centerOf(conn.toId);
+    line.setAttribute('x1',a.x); line.setAttribute('y1',a.y); line.setAttribute('x2',b.x); line.setAttribute('y2',b.y);
+  }
+  function centerOf(nodeId){ const n=state.nodes.get(nodeId); return {x:n.x, y:n.y}; }
+  function updateConnectorsFor(nodeId){ for(const conn of state.connectors.values()){ if(conn.fromId===nodeId || conn.toId===nodeId) renderConnector(conn); } }
+
+  // Keyboard
+  window.addEventListener('keydown', (e)=>{
+    if(e.key==='Delete' || e.key==='Backspace'){
+      if(state.selection){ if(state.selection.type==='node') deleteNode(state.selection.id); if(state.selection.type==='connector') deleteConnector(state.selection.id); select(null); }
+    }
+    if((e.ctrlKey||e.metaKey) && e.key.toLowerCase()==='d'){
+      e.preventDefault(); e.stopPropagation();
+      if(state.selection?.type==='node') duplicateNode(state.selection.id);
+      else showToast('Tipp: Wähle zuerst eine Form – Strg/⌘+D dupliziert');
+    }
+  });
+
+  function deleteNode(id){ for(const [cid,conn] of [...state.connectors]){ if(conn.fromId===id || conn.toId===id) deleteConnector(cid); } state.nodes.delete(id); const el=document.getElementById(id); if(el) el.remove(); markDirty(); }
+  function deleteConnector(id){ state.connectors.delete(id); const el=document.getElementById(id); if(el) el.remove(); markDirty(); }
+  function duplicateNode(id){ const n=state.nodes.get(id); const dup={...n, id:nextId('n'), x:n.x+state.grid*2, y:n.y+state.grid*2}; state.nodes.set(dup.id, dup); renderNode(dup); select({type:'node', id:dup.id}); markDirty(); }
+
+  // Serialize / Import / Export helpers
+  function serializeProject(){
+    return JSON.stringify({
+      nodes:[...state.nodes.values()],
+      connectors:[...state.connectors.values()],
+      meta:{grid:state.grid, savedAt:new Date().toISOString()}
+    }, null, 2);
+  }
+
+  function loadFromData(data){
+    state.nodes.clear(); state.connectors.clear();
+    layerNodes.innerHTML = ''; layerCons.innerHTML = '';
+    if(data?.nodes){ for(const n of data.nodes){ state.nodes.set(n.id, n); renderNode(n); } }
+    if(data?.connectors){ for(const c of data.connectors){ state.connectors.set(c.id, c); renderConnector(c); } }
+    state.dirty = false;
+  }
+
+  document.getElementById('fileImportJSON').addEventListener('change', (e)=>{
+    const file=e.target.files?.[0]; if(!file) return; const reader=new FileReader();
+    reader.onload=()=>{ try{ const data=JSON.parse(reader.result); loadFromData(data); showToast('Projekt geladen'); }catch(err){ alert('Fehler beim Laden: '+err.message); } };
+    reader.readAsText(file);
+  });
+
+  function exportJSON(){ const blob=new Blob([serializeProject()], {type:'application/json'}); const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='pap-project.json'; a.click(); }
+
+  function exportPNG(withGrid=false){
+    const r = canvas.getBoundingClientRect();
+    const clone = canvas.cloneNode(true);
+
+    // Inline CSS so the blob knows our styles
+    const cssVar=(name,fallback)=>{ try{ return getComputedStyle(document.documentElement).getPropertyValue(name).trim()||fallback; }catch{ return fallback; } };
+    const style=document.createElementNS('http://www.w3.org/2000/svg','style');
+    style.textContent = `
+      .node-shape{fill:${cssVar('--node','#ffffff')};stroke:${cssVar('--node-stroke','#cbd5e1')};stroke-width:2}
+      .connector{stroke:#64748b;stroke-width:2.25}
+      text{fill:#111827;font:600 12px/1.2 system-ui,Segoe UI,Roboto,Arial,sans-serif}
+      marker path{fill:#64748b}
+    `;
+    clone.insertBefore(style, clone.firstChild);
+
+    const svg=document.createElementNS('http://www.w3.org/2000/svg','svg');
+    svg.setAttribute('xmlns','http://www.w3.org/2000/svg');
+    svg.setAttribute('width', Math.floor(r.width));
+    svg.setAttribute('height', Math.floor(r.height));
+    svg.setAttribute('viewBox', `0 0 ${Math.floor(r.width)} ${Math.floor(r.height)}`);
+    if(!withGrid){ const bg=document.createElementNS('http://www.w3.org/2000/svg','rect'); bg.setAttribute('x','0'); bg.setAttribute('y','0'); bg.setAttribute('width','100%'); bg.setAttribute('height','100%'); bg.setAttribute('fill','#ffffff'); svg.appendChild(bg); }
+    svg.appendChild(clone);
+
+    const s=new XMLSerializer().serializeToString(svg);
+    const img=new Image();
+    const url=URL.createObjectURL(new Blob([s], {type:'image/svg+xml'}));
+    img.onload=()=>{
+      const w=Math.floor(r.width), h=Math.floor(r.height);
+      const c=document.createElement('canvas'); c.width=w; c.height=h; const ctx=c.getContext('2d');
+      ctx.drawImage(img,0,0);
+      if(withGrid){ const prev=ctx.globalCompositeOperation; ctx.globalCompositeOperation='destination-over'; drawGrid(ctx,w,h,state.grid); ctx.globalCompositeOperation=prev; }
+      URL.revokeObjectURL(url);
+      const png=c.toDataURL('image/png'); const a=document.createElement('a'); a.href=png; a.download=withGrid?'pap-export-grid.png':'pap-export.png'; a.click();
+    };
+    img.src=url;
+  }
+
+  function drawGrid(ctx,w,h,step=20){ ctx.beginPath(); for(let x=step;x<w;x+=step){ ctx.moveTo(x,0); ctx.lineTo(x,h); } for(let y=step;y<h;y+=step){ ctx.moveTo(0,y); ctx.lineTo(w,y); } ctx.lineWidth=1; ctx.strokeStyle='#e5e7eb'; ctx.stroke(); }
+
+  // Export dropdown wiring
+  (function(){
+    const exportDropdown=document.getElementById('exportDropdown');
+    const btnExport=document.getElementById('btnExport');
+    const menuExport=document.getElementById('menuExport');
+    function toggleExportMenu(show){ const willShow= typeof show==='boolean'? show : !menuExport.classList.contains('show'); menuExport.classList.toggle('show', willShow); menuExport.setAttribute('aria-hidden', willShow? 'false':'true'); }
+    btnExport.addEventListener('click', (e)=>{ e.stopPropagation(); toggleExportMenu(); });
+    document.addEventListener('click', (e)=>{ if(!exportDropdown.contains(e.target)) toggleExportMenu(false); });
+    window.addEventListener('keydown', (e)=>{ if(e.key==='Escape') toggleExportMenu(false); });
+    menuExport.addEventListener('click', (e)=>{ const b=e.target.closest('button[data-action]'); if(!b) return; const a=b.dataset.action; toggleExportMenu(false); if(a==='export-json') exportJSON(); if(a==='export-png') exportPNG(false); if(a==='export-png-grid') exportPNG(true); });
+  })();
+
+  // Toast helper
+  function showToast(msg){ toast.textContent=msg; toast.classList.add('show'); clearTimeout(showToast.tid); showToast.tid=setTimeout(()=>toast.classList.remove('show'), 1400); }
+
+  // Demo content (skipped if autosave restored)
+  (function demo(){ if(state.restoredFromAutosave) return; const a=createNode('terminator',220,140); a.label='Start'; const b=createNode('process',420,140); b.label='Initialisiere'; const c=createNode('decision',620,140); c.label='Bedingung?'; const d=createNode('process',620,280); d.label='Alternative'; [a,b,c,d].forEach(renderNode); renderConnector(createConnector(a.id,b.id)); renderConnector(createConnector(b.id,c.id)); renderConnector(createConnector(c.id,d.id)); })();
+
+  // --- Self-tests (basic & extra) ---
+  (function runSelfTests(){
+    try{
+      const before = state.idCounter;
+      const n = createNode('process', 100, 100); renderNode(n);
+      console.assert(state.nodes.has(n.id), 'Node should be stored');
+      duplicateNode(n.id); const dupId = `n-${before+1}`; console.assert(state.nodes.has(dupId), 'Duplicate should exist');
+      const json = serializeProject(); const parsed = JSON.parse(json); console.assert(Array.isArray(parsed.nodes) && Array.isArray(parsed.connectors), 'Serialized format shape');
+      const testCss = (v)=>/\$\{\s*cssVar/.test(v)===false; // no raw ${cssVar...}
+      const cssOk = testCss(`.node-shape{fill:${getComputedStyle(document.documentElement).getPropertyValue('--node').trim()||'#fff'};}`);
+      console.assert(cssOk, 'Template literal for CSS vars should evaluate');
+
+      // Extra test: connector updates when moving node
+      const a = createNode('process', 50, 50); const b = createNode('process', 200, 50);
+      [a,b].forEach(renderNode);
+      const c = createConnector(a.id, b.id); renderConnector(c);
+      const line1 = document.getElementById(c.id); const oldX2 = line1.getAttribute('x2');
+      b.x += 40; renderNode(b);
+      const line2 = document.getElementById(c.id); console.assert(line2.getAttribute('x2') !== oldX2, 'Connector endpoints update after node move');
+
+      // cleanup
+      deleteNode(a.id); deleteNode(b.id); deleteNode(dupId); deleteNode(n.id);
+      state.idCounter = before; select(null); state.dirty = false;
+      console.log('%cSelf-tests passed','color:green');
+    }catch(err){ console.error('Self-tests failed:', err); }
+  })();
+
+  </script>
+</body>
+</html>
