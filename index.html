@@ -51,8 +51,8 @@
     .shape strong{color:#fff}
     .shape[draggable="true"]:active{cursor:grabbing}
 
-    main{grid-area:main; position:relative; overflow:hidden}
-    #stage-wrap{position:absolute; inset:0}
+    main{grid-area:main; position:relative; overflow:auto}
+    #stage-wrap{position:relative; min-height:100%; min-width:100%; width:100%; height:100%}
 
     /* SVG canvas + grid */
     #canvas{width:100%; height:100%; display:block; background:
@@ -238,6 +238,8 @@
     showVerbinder: false,
     verticalUnlimited: true,
     horizontalUnlimited: false,
+    viewportWidth: 0,
+    viewportHeight: 0,
     dirty: false,
     tabId: null,
     restoredFromAutosave: false
@@ -249,6 +251,8 @@
   const layerNodes = document.getElementById('nodes');
   const layerCons = document.getElementById('connectors');
   const toast = document.getElementById('toast');
+  const stageWrap = document.getElementById('stage-wrap');
+  const mainArea = document.querySelector('main');
 
   // --- Autosave (per tab) ---
   function ensureTabId(){
@@ -300,11 +304,17 @@
 
   // Resize SVG viewBox to pixel size for easy math
   const resizeCanvas = () => {
-    const r = canvas.getBoundingClientRect();
-    canvas.setAttribute('viewBox', `0 0 ${Math.floor(r.width)} ${Math.floor(r.height)}`);
-    if(!state.verticalUnlimited || !state.horizontalUnlimited) enforceConstraintsForAllNodes();
+    const rectSource = mainArea || canvas.parentElement || document.body;
+    const rect = rectSource.getBoundingClientRect();
+    state.viewportWidth = Math.max(1, Math.floor(rect.width));
+    state.viewportHeight = Math.max(1, Math.floor(rect.height));
+    requestStageSizeUpdate();
   };
-  new ResizeObserver(resizeCanvas).observe(document.body);
+  if(mainArea){
+    new ResizeObserver(resizeCanvas).observe(mainArea);
+  }else{
+    new ResizeObserver(resizeCanvas).observe(document.body);
+  }
   window.addEventListener('load', resizeCanvas);
 
   // Einstellungen (Modal) & Verbinder-Präferenz
@@ -362,6 +372,49 @@
   function applyGridToCanvas(){
     document.documentElement.style.setProperty('--grid-step', `${state.grid}px`);
   }
+  const stageMargin = 200;
+  let stageSizeRaf = 0;
+  function computeNodeExtents(){
+    if(state.nodes.size===0) return null;
+    let maxX = 0;
+    let maxY = 0;
+    for(const node of state.nodes.values()){
+      maxX = Math.max(maxX, node.x + node.w/2);
+      maxY = Math.max(maxY, node.y + node.h/2);
+    }
+    return {maxX, maxY};
+  }
+  function updateStageSize(){
+    if(!stageWrap || !canvas) return;
+    const baseWidth = Math.max(1, state.viewportWidth || mainArea?.clientWidth || stageWrap.clientWidth || 1);
+    const baseHeight = Math.max(1, state.viewportHeight || mainArea?.clientHeight || stageWrap.clientHeight || 1);
+    let targetWidth = baseWidth;
+    let targetHeight = baseHeight;
+    const extents = computeNodeExtents();
+    if(state.horizontalUnlimited && extents){
+      const requiredWidth = Math.max(baseWidth, Math.ceil(extents.maxX + stageMargin));
+      targetWidth = requiredWidth;
+    }
+    if(state.verticalUnlimited && extents){
+      const requiredHeight = Math.max(baseHeight, Math.ceil(extents.maxY + stageMargin));
+      targetHeight = requiredHeight;
+    }
+    stageWrap.style.width = state.horizontalUnlimited ? `${targetWidth}px` : '';
+    stageWrap.style.height = state.verticalUnlimited ? `${targetHeight}px` : '';
+    const w = Math.floor(targetWidth);
+    const h = Math.floor(targetHeight);
+    canvas.setAttribute('viewBox', `0 0 ${w} ${h}`);
+    canvas.setAttribute('width', w);
+    canvas.setAttribute('height', h);
+    if(!state.verticalUnlimited || !state.horizontalUnlimited) enforceConstraintsForAllNodes();
+  }
+  function requestStageSizeUpdate(){
+    if(stageSizeRaf) cancelAnimationFrame(stageSizeRaf);
+    stageSizeRaf = requestAnimationFrame(()=>{
+      stageSizeRaf = 0;
+      updateStageSize();
+    });
+  }
   function setShowVerbinder(v){
     state.showVerbinder = !!v;
     updateVerbinderUI();
@@ -385,6 +438,7 @@
     saveSettings();
     markDirty();
     if(!state.verticalUnlimited) enforceConstraintsForAllNodes();
+    requestStageSizeUpdate();
     showToast(state.verticalUnlimited ? 'Vertikale Begrenzung aus' : 'Vertikale Begrenzung an');
   }
   function setHorizontalUnlimited(v){
@@ -393,6 +447,7 @@
     saveSettings();
     markDirty();
     if(!state.horizontalUnlimited) enforceConstraintsForAllNodes();
+    requestStageSizeUpdate();
     showToast(state.horizontalUnlimited ? 'Horizontale Begrenzung aus' : 'Horizontale Begrenzung an');
   }
   function getCanvasSize(){
@@ -434,7 +489,10 @@
         changed = true;
       }
     }
-    if(changed) markDirty();
+    if(changed){
+      markDirty();
+      requestStageSizeUpdate();
+    }
   }
 
   function openSettings(){ modal.classList.add('show'); modal.setAttribute('aria-hidden','false'); }
@@ -519,6 +577,7 @@
     text.textContent = node.label; g.appendChild(text);
 
     updateConnectorsFor(node.id);
+    requestStageSizeUpdate();
   }
 
   function shapeElement(node){
@@ -604,7 +663,13 @@
     }
   });
 
-  function deleteNode(id){ for(const [cid,conn] of [...state.connectors]){ if(conn.fromId===id || conn.toId===id) deleteConnector(cid); } state.nodes.delete(id); const el=document.getElementById(id); if(el) el.remove(); markDirty(); }
+  function deleteNode(id){
+    for(const [cid,conn] of [...state.connectors]){ if(conn.fromId===id || conn.toId===id) deleteConnector(cid); }
+    state.nodes.delete(id);
+    const el=document.getElementById(id); if(el) el.remove();
+    markDirty();
+    requestStageSizeUpdate();
+  }
   function deleteConnector(id){ state.connectors.delete(id); const el=document.getElementById(id); if(el) el.remove(); markDirty(); }
   function duplicateNode(id){
     const n=state.nodes.get(id);
@@ -678,6 +743,7 @@
     updateGridUI();
     updateUnlimitedUI();
     if(!state.verticalUnlimited || !state.horizontalUnlimited) enforceConstraintsForAllNodes();
+    requestStageSizeUpdate();
     state.dirty = false;
   }
 
