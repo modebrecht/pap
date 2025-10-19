@@ -25,7 +25,7 @@
     html,body{height:100%}
     body{
       margin:0; background:var(--bg); color:var(--ink); font:14px/1.4 system-ui,-apple-system,Segoe UI,Roboto,Inter,Arial,sans-serif;
-      display:grid; grid-template-columns:280px 1fr; grid-template-rows:56px 1fr; grid-template-areas:
+      display:grid; grid-template-columns:280px minmax(0,1fr); grid-template-rows:56px minmax(0,1fr); grid-template-areas:
       "header header"
       "sidebar main";
     }
@@ -49,7 +49,7 @@
     .dropdown .menu button{display:block; width:100%; padding:10px 12px; text-align:left; border:0; background:#fff; cursor:pointer; font-weight:600}
     .dropdown .menu button:hover{background:#f3f4f6}
 
-    aside{grid-area:sidebar; background:var(--panel); color:var(--panel-ink); padding:14px; display:flex; flex-direction:column; gap:14px; box-shadow: inset -1px 0 0 rgba(255,255,255,.06)}
+    aside{grid-area:sidebar; background:var(--panel); color:var(--panel-ink); padding:14px; display:flex; flex-direction:column; gap:0px; box-shadow: inset -1px 0 0 rgba(255,255,255,.06); overflow:auto; min-height:0}
     .palette h2{margin:4px 0 8px; font-size:13px; text-transform:uppercase; letter-spacing:.08em; color:#d1d5db}
     .shape{background:rgba(255,255,255,.1); border:1px solid rgba(255,255,255,.2); border-radius:12px; padding:10px; display:flex; align-items:center; gap:10px; cursor:grab; user-select:none}
     .shape + .shape{margin-top:10px}
@@ -57,7 +57,7 @@
     .shape strong{color:#fff}
     .shape[draggable="true"]:active{cursor:grabbing}
 
-    main{grid-area:main; position:relative; overflow:auto}
+    main{grid-area:main; position:relative; overflow:auto; min-width:0; min-height:0}
     #stage-wrap{position:relative; min-height:100%; min-width:100%; width:100%; height:100%}
 
     /* SVG canvas + grid */
@@ -99,10 +99,22 @@
     .switch .thumb{position:absolute; top:3px; left:3px; width:22px; height:22px; border-radius:50%; background:#fff; box-shadow:0 1px 3px rgba(0,0,0,.25); transition:.2s}
     .switch input:checked + .track{background:#3b82f6}
     .switch input:checked ~ .thumb{left:23px}
+    .palette{margin-bottom:18px}
+    .palette-head{display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:8px; touch-action:none}
+    .palette-head h2{margin:0; flex:1}
+    .palette-head button{border:1px solid rgba(255,255,255,.25); background:rgba(255,255,255,.12); color:#f8fafc; border-radius:8px; padding:4px 8px; font-weight:700; cursor:pointer; transition:.15s ease}
+    .palette-head button:hover{background:rgba(255,255,255,.24)}
     .arrows-hidden .connector{marker-end:none !important}
     .context-menu{position:fixed; display:none; min-width:160px; background:#111827; color:#f8fafc; border-radius:10px; padding:6px 0; box-shadow:0 8px 24px rgba(15,23,42,.25); z-index:100; font-size:13px}
     .context-menu button{width:100%; padding:8px 14px; background:none; border:none; color:inherit; text-align:left; cursor:pointer}
     .context-menu button:hover{background:rgba(255,255,255,.1)}
+    .floating-palette{position:fixed; top:120px; left:120px; width:260px; max-width:90vw; max-height:70vh; overflow:auto; background:var(--panel); color:var(--panel-ink); border-radius:16px; box-shadow:var(--shadow); padding:14px; display:none; z-index:80}
+    .floating-palette.show{display:block}
+    .floating-palette .palette{margin:0}
+    .floating-palette .palette-head{cursor:move; user-select:none}
+    .floating-palette .palette-head button{cursor:pointer}
+    body.sidebar-collapsed{grid-template-columns:0 minmax(0,1fr)}
+    body.sidebar-collapsed aside{display:none}
   </style>
 </head>
 <body>
@@ -129,8 +141,11 @@
   </header>
 
   <aside>
-    <div class="palette">
-      <h2>Bausteine</h2>
+    <div class="palette" id="paletteBausteine">
+      <div class="palette-head" id="paletteBausteineHead">
+        <h2>Bausteine</h2>
+        <button type="button" id="btnTogglePalette" aria-label="Palette einklappen">&laquo;</button>
+      </div>
       <div class="shape" draggable="true" data-shape="terminator" title="Start/Ende">
         <svg viewBox="0 0 100 60" aria-hidden="true"><rect x="5" y="10" width="90" height="40" rx="20" fill="#fff" stroke="#cbd5e1" stroke-width="4"/></svg>
         <div><strong>Start/Ende</strong><div style="opacity:.8;font-size:12px">Terminator</div></div>
@@ -152,11 +167,9 @@
         <div><strong>Verbinder</strong><div style="opacity:.8;font-size:12px">Kreis</div></div>
       </div>
     </div>
-    <div class="palette">
+    <div class="palette" id="paletteActions">
       <h2>Aktionen</h2>
       <div style="font-size:13px; color:#e5e7eb; opacity:.9; line-height:1.5">
-        • Baustein links greifen → in die Fläche ziehen<br>
-        • In der Fläche verschieben: Maus ziehen<br>
         • <b>Doppelklick</b> auf Form → umbenennen<br>
         • <b>Shift</b> + Klick zwei Formen → Pfeil verbinden<br>
         • <b>Entf</b> → ausgewählte Form/Verbindung löschen<br>
@@ -178,6 +191,7 @@
       </svg>
     </div>
   </main>
+  <div class="floating-palette" id="floatingPalette" aria-hidden="true"></div>
 
   <div class="modal-backdrop" id="settingsModal" aria-hidden="true">
     <div class="modal" role="dialog" aria-modal="true" aria-labelledby="settingsTitle">
@@ -276,6 +290,8 @@
     viewportHeight: 0,
     showArrows: true,
     fontSize: 12,
+    sidebarCollapsed: false,
+    palettePosition: {x:120, y:120},
     contextConnectorId: null,
     contextNodeId: null,
     dirty: false,
@@ -292,6 +308,7 @@
   const stageWrap = document.getElementById('stage-wrap');
   const mainArea = document.querySelector('main');
   const ARROW_PADDING = 0;
+  const aside = document.querySelector('aside');
   const connectorMenu = document.getElementById('connectorMenu');
   const connectorToggleArrow = document.getElementById('connectorToggleArrow');
   const connectorDelete = document.getElementById('connectorDelete');
@@ -300,7 +317,13 @@
   const nodeDelete = document.getElementById('nodeDelete');
   const btnFontIncrease = document.getElementById('btnFontIncrease');
   const btnFontDecrease = document.getElementById('btnFontDecrease');
+  const paletteBausteine = document.getElementById('paletteBausteine');
+  const paletteActions = document.getElementById('paletteActions');
+  const floatingPalette = document.getElementById('floatingPalette');
+  const paletteBausteineHead = document.getElementById('paletteBausteineHead');
+  const btnTogglePalette = document.getElementById('btnTogglePalette');
   let nodeMenuVisible = false;
+  let paletteDrag = null;
   const FONT_WEIGHT = 600;
   const FONT_FAMILY = 'system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif';
   const FONT_SIZE_MIN = 10;
@@ -388,6 +411,8 @@
       if(typeof s.showArrows==='boolean') state.showArrows = s.showArrows;
       const fontSize = Number(s.fontSize);
       if(Number.isFinite(fontSize)) state.fontSize = clampFontSize(fontSize);
+      if(typeof s.sidebarCollapsed==='boolean') state.sidebarCollapsed = s.sidebarCollapsed;
+      if(s.palettePosition) state.palettePosition = sanitizePalettePosition(s.palettePosition);
     }catch{}
   }
   function saveSettings(){
@@ -398,7 +423,9 @@
         verticalUnlimited: state.verticalUnlimited,
         horizontalUnlimited: state.horizontalUnlimited,
         showArrows: state.showArrows,
-        fontSize: state.fontSize
+        fontSize: state.fontSize,
+        sidebarCollapsed: state.sidebarCollapsed,
+        palettePosition: state.palettePosition
       }));
     }catch{}
   }
@@ -512,6 +539,146 @@
     if(current) lines.push(current);
     return lines.length? lines : [''];
   }
+  function sanitizePalettePosition(pos){
+    const fallback = {x:120, y:120};
+    if(!pos || typeof pos !== 'object') return {...fallback};
+    const x = Number(pos.x);
+    const y = Number(pos.y);
+    return {
+      x: Number.isFinite(x) ? x : fallback.x,
+      y: Number.isFinite(y) ? y : fallback.y
+    };
+  }
+  function applyPalettePosition(){
+    if(!floatingPalette) return;
+    const margin = 16;
+    const width = floatingPalette.offsetWidth || 260;
+    const height = floatingPalette.offsetHeight || 220;
+    const sanitized = sanitizePalettePosition(state.palettePosition);
+    let left = sanitized.x;
+    let top = sanitized.y;
+    const maxLeft = Math.max(margin, window.innerWidth - width - margin);
+    const maxTop = Math.max(margin, window.innerHeight - height - margin);
+    left = Math.min(maxLeft, Math.max(margin, left));
+    top = Math.min(maxTop, Math.max(margin, top));
+    floatingPalette.style.left = `${left}px`;
+    floatingPalette.style.top = `${top}px`;
+    state.palettePosition = {x:left, y:top};
+  }
+  function movePaletteToFloating(){
+    if(!floatingPalette || !paletteBausteine) return;
+    if(floatingPalette.contains(paletteBausteine)) return;
+    floatingPalette.appendChild(paletteBausteine);
+  }
+  function movePaletteToSidebar(){
+    if(!paletteBausteine || !aside) return;
+    if(aside.contains(paletteBausteine)) return;
+    if(paletteActions && aside.contains(paletteActions)) aside.insertBefore(paletteBausteine, paletteActions);
+    else aside.appendChild(paletteBausteine);
+  }
+  function updateToggleButton(){
+    if(!btnTogglePalette) return;
+    const icon = state.sidebarCollapsed ? '\u00BB' : '\u00AB';
+    btnTogglePalette.textContent = icon;
+    const label = state.sidebarCollapsed ? 'Palette anheften' : 'Palette l\u00F6sen';
+    btnTogglePalette.setAttribute('title', label);
+    btnTogglePalette.setAttribute('aria-label', label);
+    btnTogglePalette.setAttribute('aria-expanded', (!state.sidebarCollapsed).toString());
+  }
+  function setSidebarCollapsed(collapsed, {silent=false}={}){
+    const next = !!collapsed;
+    const previous = state.sidebarCollapsed;
+    state.sidebarCollapsed = next;
+    closeAllMenus();
+    if(paletteDrag){
+      const canReleaseDrag = floatingPalette && typeof floatingPalette.releasePointerCapture === 'function';
+      if(paletteDrag.pointerId !== undefined && canReleaseDrag){
+        try{ floatingPalette.releasePointerCapture(paletteDrag.pointerId); }catch{}
+      }
+      document.removeEventListener('pointermove', onPaletteDrag);
+      document.removeEventListener('pointerup', stopPaletteDrag);
+      paletteDrag = null;
+    }
+    if(next){
+      document.body.classList.add('sidebar-collapsed');
+      movePaletteToFloating();
+      if(floatingPalette){
+        floatingPalette.classList.add('show');
+        floatingPalette.setAttribute('aria-hidden','false');
+      }
+      applyPalettePosition();
+    }else{
+      document.body.classList.remove('sidebar-collapsed');
+      if(floatingPalette){
+        floatingPalette.classList.remove('show');
+        floatingPalette.setAttribute('aria-hidden','true');
+      }
+      movePaletteToSidebar();
+    }
+    updateToggleButton();
+    requestStageSizeUpdate();
+    if(!silent && previous !== next){
+      saveSettings();
+    }
+  }
+  function updatePalettePositionFromStyles(){
+    if(!floatingPalette) return;
+    const left = parseFloat(floatingPalette.style.left);
+    const top = parseFloat(floatingPalette.style.top);
+    if(Number.isFinite(left) && Number.isFinite(top)){
+      state.palettePosition = {x:left, y:top};
+    }
+  }
+  function startPaletteDrag(e){
+    if(!state.sidebarCollapsed) return;
+    if(!floatingPalette) return;
+    if(typeof e.pointerType === 'string'){
+      if(e.pointerType === 'mouse' && e.button !== 0) return;
+    }else if(e.button !== undefined && e.button !== 0){
+      return;
+    }
+    if(e.target.closest('button')) return;
+    e.preventDefault();
+    const rect = floatingPalette.getBoundingClientRect();
+    paletteDrag = {
+      offsetX: e.clientX - rect.left,
+      offsetY: e.clientY - rect.top,
+      pointerId: e.pointerId
+    };
+    if(typeof floatingPalette.setPointerCapture === 'function' && e.pointerId !== undefined){
+      try{ floatingPalette.setPointerCapture(e.pointerId); }catch{}
+    }
+    document.addEventListener('pointermove', onPaletteDrag);
+    document.addEventListener('pointerup', stopPaletteDrag);
+    document.addEventListener('pointercancel', stopPaletteDrag);
+  }
+  function onPaletteDrag(e){
+    if(!paletteDrag || !floatingPalette) return;
+    const margin = 16;
+    const width = floatingPalette.offsetWidth || 260;
+    const height = floatingPalette.offsetHeight || 220;
+    let left = e.clientX - paletteDrag.offsetX;
+    let top = e.clientY - paletteDrag.offsetY;
+    const maxLeft = Math.max(margin, window.innerWidth - width - margin);
+    const maxTop = Math.max(margin, window.innerHeight - height - margin);
+    left = Math.min(maxLeft, Math.max(margin, left));
+    top = Math.min(maxTop, Math.max(margin, top));
+    floatingPalette.style.left = `${left}px`;
+    floatingPalette.style.top = `${top}px`;
+  }
+  function stopPaletteDrag(e){
+    if(!paletteDrag) return;
+    document.removeEventListener('pointermove', onPaletteDrag);
+    document.removeEventListener('pointerup', stopPaletteDrag);
+    document.removeEventListener('pointercancel', stopPaletteDrag);
+    const canRelease = floatingPalette && typeof floatingPalette.releasePointerCapture === 'function';
+    if(paletteDrag.pointerId !== undefined && canRelease){
+      try{ floatingPalette.releasePointerCapture(paletteDrag.pointerId); }catch{}
+    }
+    updatePalettePositionFromStyles();
+    paletteDrag = null;
+    saveSettings();
+  }
   function rerenderAllNodes(){
     for(const node of state.nodes.values()){
       renderNode(node);
@@ -548,6 +715,10 @@
   function closeAllMenus(){
     closeConnectorMenu();
     closeNodeMenu();
+  }
+  function handleViewportChange(){
+    closeAllMenus();
+    applyPalettePosition();
   }
   function openConnectorMenu(connId, clientX, clientY){
     closeNodeMenu();
@@ -735,6 +906,8 @@
   updateUnlimitedUI();
   applyArrowsToCanvas();
   updateArrowsUI();
+  setSidebarCollapsed(state.sidebarCollapsed, {silent:true});
+  applyPalettePosition();
   restoreAutosaveIfAny();
 
   if(btnSettings) btnSettings.addEventListener('click', openSettings);
@@ -747,6 +920,8 @@
   if(toggleArrows) toggleArrows.addEventListener('change', (e)=> setShowArrows(e.target.checked));
   if(btnFontIncrease) btnFontIncrease.addEventListener('click', ()=> adjustFontSize(FONT_SIZE_STEP));
   if(btnFontDecrease) btnFontDecrease.addEventListener('click', ()=> adjustFontSize(-FONT_SIZE_STEP));
+  if(btnTogglePalette) btnTogglePalette.addEventListener('click', ()=> setSidebarCollapsed(!state.sidebarCollapsed));
+  if(paletteBausteineHead) paletteBausteineHead.addEventListener('pointerdown', startPaletteDrag);
   window.addEventListener('keydown', (e)=>{ if(e.key==='Escape' && modal?.classList.contains('show')) closeSettings(); });
   if(connectorToggleArrow) connectorToggleArrow.addEventListener('click', ()=>{
     if(state.contextConnectorId){ toggleConnectorArrow(state.contextConnectorId); }
@@ -772,7 +947,7 @@
     if(connectorMenuVisible && connectorMenu && !connectorMenu.contains(e.target)) closeConnectorMenu();
     if(nodeMenuVisible && nodeMenu && !nodeMenu.contains(e.target)) closeNodeMenu();
   });
-  window.addEventListener('resize', closeAllMenus);
+  window.addEventListener('resize', handleViewportChange);
   window.addEventListener('blur', closeAllMenus);
   if(mainArea) mainArea.addEventListener('scroll', closeAllMenus);
 
@@ -1122,7 +1297,9 @@
         nextId:state.idCounter,
         verticalUnlimited: state.verticalUnlimited,
         horizontalUnlimited: state.horizontalUnlimited,
-        fontSize: state.fontSize
+        fontSize: state.fontSize,
+        sidebarCollapsed: state.sidebarCollapsed,
+        floatingPalette: state.palettePosition
       }
     }, null, 2);
   }
@@ -1146,6 +1323,8 @@
       if(typeof data.meta.horizontalUnlimited === 'boolean') state.horizontalUnlimited = data.meta.horizontalUnlimited;
       const metaFontSize = Number(data.meta.fontSize);
       if(Number.isFinite(metaFontSize)) state.fontSize = clampFontSize(metaFontSize);
+      if(typeof data.meta.sidebarCollapsed === 'boolean') state.sidebarCollapsed = data.meta.sidebarCollapsed;
+      if(data.meta.floatingPalette) state.palettePosition = sanitizePalettePosition(data.meta.floatingPalette);
     }
     applyFontSize();
     applyGridToCanvas();
@@ -1178,6 +1357,8 @@
     if(!state.verticalUnlimited || !state.horizontalUnlimited) enforceConstraintsForAllNodes();
     requestStageSizeUpdate();
     applyArrowsToCanvas();
+    setSidebarCollapsed(state.sidebarCollapsed, {silent:true});
+    applyPalettePosition();
     state.dirty = false;
   }
 
