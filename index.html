@@ -39,6 +39,12 @@
     header button:hover, header .file-btn-label:hover{background:#f3f4f6}
     header button:disabled{opacity:.5; cursor:not-allowed}
     header button:disabled:hover{background:#fff}
+    header .project-title{
+      flex:0 0 260px; max-width:320px; padding:8px 12px; border:1px solid #d1d5db; border-radius:10px; font:inherit; font-weight:600; background:#fff; transition:border-color .15s ease, box-shadow .15s ease;
+    }
+    header .project-title::placeholder{color:var(--muted)}
+    header .project-title:focus{outline:none; border-color:#3b82f6; box-shadow:0 0 0 3px rgba(59,130,246,.2)}
+    header .project-title.invalid{border-color:#dc2626; box-shadow:0 0 0 3px rgba(220,38,38,.15)}
     .emoji{font-size:1.6em; line-height:1}
     .btn-group{display:flex; align-items:stretch; gap:0}
     .btn-group > *{margin:0; display:flex; align-items:center; justify-content:center}
@@ -141,9 +147,10 @@
 <body>
   <header>
     <h1><span class="emoji">🧭</span>PAP&nbsp;Builder</h1>
+    <input id="projectTitle" class="project-title" type="text" placeholder="Projektname eingeben..." aria-label="Projektname" required />
     <div class="spacer"></div>
     <div class="btn-group" id="groupImportExport">
-      <button type="button" id="btnNew" title="Neues Projekt starten"><span class="emoji">🆕</span> New</button>
+      <button type="button" id="btnNew" title="Neues Projekt starten"><span class="emoji">🆕</span> Neu</button>
       <button type="button" id="btnImport" class="file-btn-label" title="Projekt aus JSON laden"><span class="emoji">📥</span> Import</button>
       <div class="dropdown" id="exportDropdown">
         <button id="btnExport" title="Export"><span class="emoji">📤</span> Export</button>
@@ -317,6 +324,7 @@
     showArrows: true,
     fontSize: 12,
     sidebarCollapsed: false,
+    title: '',
     palettePosition: {x:120, y:120},
     contextConnectorId: null,
     contextNodeId: null,
@@ -334,6 +342,7 @@
   const stageWrap = document.getElementById('stage-wrap');
   const mainArea = document.querySelector('main');
   const fileImport = document.getElementById('fileImportJSON');
+  const inputTitle = document.getElementById('projectTitle');
   const btnNew = document.getElementById('btnNew');
   const btnImport = document.getElementById('btnImport');
   const ARROW_PADDING = 0;
@@ -487,6 +496,16 @@
       selectGrid.appendChild(option);
     }
     selectGrid.value = value;
+  }
+  function updateTitleValidity(){
+    if(!inputTitle) return;
+    const valid = state.title.trim().length > 0;
+    inputTitle.classList.toggle('invalid', !valid);
+  }
+  function updateTitleInput(){
+    if(!inputTitle) return;
+    inputTitle.value = state.title;
+    updateTitleValidity();
   }
   function applyOverflowModes(){
     document.body.classList.toggle('horizontal-unlimited', !!state.horizontalUnlimited);
@@ -956,6 +975,30 @@
     }
   }
 
+  function ensureTitleFilled(){
+    const title = state.title.trim();
+    if(title) return true;
+    updateTitleValidity();
+    if(inputTitle){
+      inputTitle.focus();
+      if(typeof inputTitle.select === 'function') inputTitle.select();
+    }
+    showToast('Bitte einen Projekttitel eingeben');
+    return false;
+  }
+  function projectFileName(ext='json'){
+    const raw = state.title?.trim() || 'Projekt';
+    let safe = raw
+      .normalize('NFKD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/[^a-z0-9]+/gi, '-')
+      .replace(/^-+|-+$/g, '')
+      .toLowerCase();
+    if(!safe) safe = 'projekt';
+    const truncated = safe.slice(0, 60).replace(/-+$/g, '') || safe;
+    return `${truncated}.${ext}`;
+  }
+
   function openSettings(){ modal.classList.add('show'); modal.setAttribute('aria-hidden','false'); }
   function closeSettings(){ modal.classList.remove('show'); modal.setAttribute('aria-hidden','true'); }
 
@@ -970,6 +1013,7 @@
   setSidebarCollapsed(state.sidebarCollapsed, {silent:true});
   applyPalettePosition();
   restoreAutosaveIfAny();
+  updateTitleInput();
 
   if(btnSettings) btnSettings.addEventListener('click', openSettings);
   if(closeBtn) closeBtn.addEventListener('click', closeSettings);
@@ -1003,6 +1047,28 @@
   if(nodeMenu){
     nodeMenu.addEventListener('click', (e)=> e.stopPropagation());
     nodeMenu.addEventListener('contextmenu', (e)=> e.preventDefault());
+  }
+  if(inputTitle){
+    inputTitle.addEventListener('input', (e)=>{
+      state.title = e.target.value;
+      markDirty();
+      updateTitleValidity();
+    });
+    inputTitle.addEventListener('blur', ()=>{
+      const trimmed = inputTitle.value.trim();
+      if(state.title !== trimmed){
+        state.title = trimmed;
+        markDirty();
+      }
+      inputTitle.value = state.title;
+      updateTitleValidity();
+    });
+    inputTitle.addEventListener('keydown', (e)=>{
+      if(e.key === 'Enter'){
+        inputTitle.blur();
+        e.preventDefault();
+      }
+    });
   }
   if(btnNew){
     btnNew.addEventListener('click', ()=>{
@@ -1369,7 +1435,8 @@
         sidebarCollapsed: state.sidebarCollapsed,
         floatingPalette: state.palettePosition,
         maxViewportWidth: state.maxViewportWidth || 0,
-        maxViewportHeight: state.maxViewportHeight || 0
+        maxViewportHeight: state.maxViewportHeight || 0,
+        title: state.title.trim()
       }
     }, null, 2);
   }
@@ -1385,6 +1452,7 @@
     layerCons.innerHTML = '';
     state.maxViewportWidth = 0;
     state.maxViewportHeight = 0;
+    state.title = '';
 
     if(data?.meta){
       if(data.meta.hasOwnProperty('grid')){
@@ -1401,6 +1469,7 @@
       const metaMaxHeight = Number(data.meta.maxViewportHeight);
       if(Number.isFinite(metaMaxWidth) && metaMaxWidth > 0) state.maxViewportWidth = metaMaxWidth;
       if(Number.isFinite(metaMaxHeight) && metaMaxHeight > 0) state.maxViewportHeight = metaMaxHeight;
+      if(typeof data.meta.title === 'string') state.title = data.meta.title.trim();
     }
     const baseWidth = Math.max(1, state.maxViewportWidth || state.viewportWidth || mainArea?.clientWidth || stageWrap?.clientWidth || 1);
     const baseHeight = Math.max(1, state.maxViewportHeight || state.viewportHeight || mainArea?.clientHeight || stageWrap?.clientHeight || 1);
@@ -1454,6 +1523,7 @@
     applyArrowsToCanvas();
     setSidebarCollapsed(state.sidebarCollapsed, {silent:true});
     applyPalettePosition();
+    updateTitleInput();
     state.dirty = false;
   }
 
@@ -1468,6 +1538,7 @@
     state.contextConnectorId = null;
     state.contextNodeId = null;
     state.idCounter = 1;
+    state.title = '';
     const baseWidth = Math.max(1, state.viewportWidth || mainArea?.clientWidth || stageWrap?.clientWidth || 1);
     const baseHeight = Math.max(1, state.viewportHeight || mainArea?.clientHeight || stageWrap?.clientHeight || 1);
     state.maxViewportWidth = baseWidth;
@@ -1497,6 +1568,7 @@
     updateGridUI();
     updateUnlimitedUI();
     updateArrowsUI();
+    updateTitleInput();
     setSidebarCollapsed(state.sidebarCollapsed, {silent:true});
     applyPalettePosition();
     requestStageSizeUpdate();
@@ -1557,9 +1629,17 @@
     btnImport.addEventListener('click', ()=> fileImport.click());
   }
 
-  function exportJSON(){ const blob=new Blob([serializeProject()], {type:'application/json'}); const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='pap-project.json'; a.click(); }
+  function exportJSON(){
+    if(!ensureTitleFilled()) return;
+    const blob=new Blob([serializeProject()], {type:'application/json'});
+    const a=document.createElement('a');
+    a.href=URL.createObjectURL(blob);
+    a.download=projectFileName('json');
+    a.click();
+  }
 
   function exportPNG(withGrid=false){
+    if(!ensureTitleFilled()) return;
     const r = canvas.getBoundingClientRect();
     const clone = canvas.cloneNode(true);
 
@@ -1591,7 +1671,10 @@
       ctx.drawImage(img,0,0);
       if(withGrid){ const prev=ctx.globalCompositeOperation; ctx.globalCompositeOperation='destination-over'; drawGrid(ctx,w,h,state.grid); ctx.globalCompositeOperation=prev; }
       URL.revokeObjectURL(url);
-      const png=c.toDataURL('image/png'); const a=document.createElement('a'); a.href=png; a.download=withGrid?'pap-export-grid.png':'pap-export.png'; a.click();
+      const png=c.toDataURL('image/png'); const a=document.createElement('a'); a.href=png;
+      const base = projectFileName(withGrid ? 'png' : 'png');
+      a.download = withGrid ? base.replace(/\.png$/, '-grid.png') : base;
+      a.click();
     };
     img.src=url;
   }
