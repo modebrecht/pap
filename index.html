@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>PAP Builder (Programmablaufplan) – v1.3 (Autosave & Bugfix)</title>
+  <title>🧭 PAP Builder - v1.4</title>
   <style>
     :root{
       --bg:#f6f7fb;
@@ -24,22 +24,37 @@
     *{box-sizing:border-box}
     html,body{height:100%}
     body{
-      margin:0; background:var(--bg); color:var(--ink); font:14px/1.4 system-ui,-apple-system,Segoe UI,Roboto,Inter,Arial,sans-serif;
-      display:grid; grid-template-columns:280px minmax(0,1fr); grid-template-rows:56px minmax(0,1fr); grid-template-areas:
+      margin:0; background:var(--bg); color:var(--ink); font-size:14px; line-height:1.4; font-family:var(--node-font-family);
+      display:grid; grid-template-columns:240px minmax(0,1fr); grid-template-rows:56px minmax(0,1fr); grid-template-areas:
       "header header"
       "sidebar main";
     }
     header{grid-area:header; display:flex; align-items:center; gap:12px; padding:10px 14px; background:#fff; box-shadow:var(--shadow); position:sticky; top:0; z-index:2}
-    header h1{font-size:16px; margin:0; font-weight:700}
+    header h1{font-size:16px; margin:0; font-weight:700; display:flex; align-items:center; gap:6px}
     header .spacer{flex:1}
     header button, header .file-btn-label{
-      border:1px solid #d1d5db; background:#fff; padding:8px 10px; border-radius:10px; cursor:pointer; transition:.15s ease; font-weight:600
+      border:1px solid #d1d5db; background:#fff; padding:8px 12px; border-radius:10px; cursor:pointer; transition:.15s ease; font-weight:600; display:flex; align-items:center; justify-content:center; line-height:1
     }
     header button:hover, header .file-btn-label:hover{background:#f3f4f6}
     header button:disabled{opacity:.5; cursor:not-allowed}
     header button:disabled:hover{background:#fff}
-    header .btn-group{display:flex; align-items:center; gap:6px}
-    header .btn-group button, header .btn-group .file-btn-label{margin:0}
+    .emoji{font-size:1.6em; line-height:1}
+    .btn-group{display:flex; align-items:stretch; gap:0}
+    .btn-group > *{margin:0; display:flex; align-items:center; justify-content:center}
+    .btn-group > .dropdown{display:flex; align-items:stretch}
+    .btn-group > .dropdown > button{height:100%}
+    .btn-group > button,
+    .btn-group > .file-btn-label,
+    .btn-group > .dropdown > button{border-radius:0; font-weight:inherit; font-size:inherit; text-transform:none}
+    .btn-group > button:not(:first-child),
+    .btn-group > .file-btn-label:not(:first-child),
+    .btn-group > .dropdown:not(:first-child) > button{margin-left:-1px}
+    .btn-group > button:first-child,
+    .btn-group > .file-btn-label:first-child,
+    .btn-group > .dropdown:first-child > button{border-top-left-radius:10px; border-bottom-left-radius:10px}
+    .btn-group > button:last-child,
+    .btn-group > .file-btn-label:last-child,
+    .btn-group > .dropdown:last-child > button{border-top-right-radius:10px; border-bottom-right-radius:10px}
     header .file-input{display:none}
 
     /* Export dropdown */
@@ -49,7 +64,7 @@
     .dropdown .menu button{display:block; width:100%; padding:10px 12px; text-align:left; border:0; background:#fff; cursor:pointer; font-weight:600}
     .dropdown .menu button:hover{background:#f3f4f6}
 
-    aside{grid-area:sidebar; background:var(--panel); color:var(--panel-ink); padding:14px; display:flex; flex-direction:column; gap:0px; box-shadow: inset -1px 0 0 rgba(255,255,255,.06); overflow:auto; min-height:0}
+    aside{grid-area:sidebar; background:var(--panel); color:var(--panel-ink); padding:12px; display:flex; flex-direction:column; gap:0px; box-shadow: inset -1px 0 0 rgba(255,255,255,.06); overflow:auto; min-height:0}
     .palette h2{margin:4px 0 8px; font-size:13px; text-transform:uppercase; letter-spacing:.08em; color:#d1d5db}
     .shape{background:rgba(255,255,255,.1); border:1px solid rgba(255,255,255,.2); border-radius:12px; padding:10px; display:flex; align-items:center; gap:10px; cursor:grab; user-select:none}
     .shape + .shape{margin-top:10px}
@@ -102,13 +117,17 @@
     .palette{margin-bottom:18px}
     .palette-head{display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:8px; touch-action:none}
     .palette-head h2{margin:0; flex:1}
+    .palette-head .palette-controls{display:flex; align-items:center; gap:6px}
     .palette-head button{border:1px solid rgba(255,255,255,.25); background:rgba(255,255,255,.12); color:#f8fafc; border-radius:8px; padding:4px 8px; font-weight:700; cursor:pointer; transition:.15s ease}
     .palette-head button:hover{background:rgba(255,255,255,.24)}
+    .palette-head .btn-group button{border-radius:0}
+    .palette-head .btn-group button:first-child{border-top-left-radius:8px; border-bottom-left-radius:8px}
+    .palette-head .btn-group button:last-child{border-top-right-radius:8px; border-bottom-right-radius:8px}
     .arrows-hidden .connector{marker-end:none !important}
     .context-menu{position:fixed; display:none; min-width:160px; background:#111827; color:#f8fafc; border-radius:10px; padding:6px 0; box-shadow:0 8px 24px rgba(15,23,42,.25); z-index:100; font-size:13px}
     .context-menu button{width:100%; padding:8px 14px; background:none; border:none; color:inherit; text-align:left; cursor:pointer}
     .context-menu button:hover{background:rgba(255,255,255,.1)}
-    .floating-palette{position:fixed; top:120px; left:120px; width:260px; max-width:90vw; max-height:70vh; overflow:auto; background:var(--panel); color:var(--panel-ink); border-radius:16px; box-shadow:var(--shadow); padding:14px; display:none; z-index:80}
+    .floating-palette{position:fixed; top:120px; left:120px; width:208px; max-width:90vw; max-height:70vh; overflow:auto; background:var(--panel); color:var(--panel-ink); border-radius:16px; box-shadow:var(--shadow); padding:14px; display:none; z-index:80}
     .floating-palette.show{display:block}
     .floating-palette .palette{margin:0}
     .floating-palette .palette-head{cursor:move; user-select:none}
@@ -119,16 +138,12 @@
 </head>
 <body>
   <header>
-    <h1>PAP&nbsp;Builder</h1>
+    <h1><span class="emoji">🧭</span>PAP&nbsp;Builder</h1>
     <div class="spacer"></div>
-    <div class="btn-group" id="fontControls">
-      <button type="button" id="btnFontIncrease" title="Schriftgroesse erhoehen">F+</button>
-      <button type="button" id="btnFontDecrease" title="Schriftgroesse verringern">F-</button>
-    </div>
     <div class="btn-group" id="groupImportExport">
-      <label class="file-btn-label" for="fileImportJSON" title="Projekt aus JSON laden">Import</label>
+      <button type="button" id="btnImport" class="file-btn-label" title="Projekt aus JSON laden"><span class="emoji">📥</span> Import</button>
       <div class="dropdown" id="exportDropdown">
-        <button id="btnExport" title="Export">EXPORT</button>
+        <button id="btnExport" title="Export"><span class="emoji">📤</span> Export</button>
         <div class="menu" id="menuExport" role="menu" aria-hidden="true">
           <button type="button" data-action="export-json">Export JSON</button>
           <button type="button" data-action="export-png">Export PNG</button>
@@ -136,7 +151,7 @@
         </div>
       </div>
     </div>
-    <button id="btnSettings" title="Einstellungen">Einstellungen</button>
+    <button id="btnSettings" title="Einstellungen"><span class="emoji">⚙️</span></button>
     <input id="fileImportJSON" class="file-input" type="file" accept="application/json" />
   </header>
 
@@ -144,7 +159,13 @@
     <div class="palette" id="paletteBausteine">
       <div class="palette-head" id="paletteBausteineHead">
         <h2>Bausteine</h2>
-        <button type="button" id="btnTogglePalette" aria-label="Palette einklappen">&laquo;</button>
+        <div class="palette-controls">
+          <div class="btn-group" id="fontControls">
+            <button type="button" id="btnFontIncrease" title="Schriftgroesse erhoehen">F+</button>
+            <button type="button" id="btnFontDecrease" title="Schriftgroesse verringern">F-</button>
+          </div>
+          <button type="button" id="btnTogglePalette" aria-label="Palette einklappen">&laquo;</button>
+        </div>
       </div>
       <div class="shape" draggable="true" data-shape="terminator" title="Start/Ende">
         <svg viewBox="0 0 100 60" aria-hidden="true"><rect x="5" y="10" width="90" height="40" rx="20" fill="#fff" stroke="#cbd5e1" stroke-width="4"/></svg>
@@ -170,9 +191,9 @@
     <div class="palette" id="paletteActions">
       <h2>Aktionen</h2>
       <div style="font-size:13px; color:#e5e7eb; opacity:.9; line-height:1.5">
-        • <b>Doppelklick</b> auf Form → umbenennen<br>
+        • <b>Doppelklick</b> Baustein → umbenennen<br>
         • <b>Shift</b> + Klick zwei Formen → Pfeil verbinden<br>
-        • <b>Entf</b> → ausgewählte Form/Verbindung löschen<br>
+        • <b>Entf</b> → Baustein löschen<br>
         • <b>Strg/⌘</b>+<b>D</b> → duplizieren
       </div>
     </div>
@@ -307,6 +328,8 @@
   const toast = document.getElementById('toast');
   const stageWrap = document.getElementById('stage-wrap');
   const mainArea = document.querySelector('main');
+  const fileImport = document.getElementById('fileImportJSON');
+  const btnImport = document.getElementById('btnImport');
   const ARROW_PADDING = 0;
   const aside = document.querySelector('aside');
   const connectorMenu = document.getElementById('connectorMenu');
@@ -1398,11 +1421,16 @@
     return max + 1;
   }
 
-  document.getElementById('fileImportJSON').addEventListener('change', (e)=>{
-    const file=e.target.files?.[0]; if(!file) return; const reader=new FileReader();
-    reader.onload=()=>{ try{ const data=JSON.parse(reader.result); loadFromData(data); showToast('Projekt geladen'); }catch(err){ alert('Fehler beim Laden: '+err.message); } };
-    reader.readAsText(file);
-  });
+  if(fileImport){
+    fileImport.addEventListener('change', (e)=>{
+      const file=e.target.files?.[0]; if(!file) return; const reader=new FileReader();
+      reader.onload=()=>{ try{ const data=JSON.parse(reader.result); loadFromData(data); showToast('Projekt geladen'); }catch(err){ alert('Fehler beim Laden: '+err.message); } };
+      reader.readAsText(file);
+    });
+  }
+  if(btnImport && fileImport){
+    btnImport.addEventListener('click', ()=> fileImport.click());
+  }
 
   function exportJSON(){ const blob=new Blob([serializeProject()], {type:'application/json'}); const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='pap-project.json'; a.click(); }
 
@@ -1493,4 +1521,3 @@
   </script>
 </body>
 </html>
-
