@@ -25,19 +25,20 @@
     html,body{height:100%}
     body{
       margin:0; background:var(--bg); color:var(--ink); font-size:14px; line-height:1.4; font-family:var(--node-font-family);
-      display:grid; grid-template-columns:240px minmax(0,1fr); grid-template-rows:56px minmax(0,1fr); grid-template-areas:
+      display:grid; grid-template-columns:240px minmax(0,1fr); grid-template-rows:48px minmax(0,1fr); grid-template-areas:
       "header header"
       "sidebar main";
     }
-    header{grid-area:header; display:flex; align-items:center; gap:12px; padding:10px 14px; background:#fff; box-shadow:var(--shadow); position:sticky; top:0; z-index:2}
-    header h1{font-size:16px; margin:0; font-weight:700; display:flex; align-items:center; gap:6px}
+    header{grid-area:header; display:flex; align-items:stretch; gap:10px; padding:0 0 0 12px; background:#fff; box-shadow:var(--shadow); position:sticky; top:0; z-index:2}
+    header h1{font-size:16px; margin:0; font-weight:700; display:flex; align-items:center; gap:6px; height:100%}
     header .spacer{flex:1}
     header button, header .file-btn-label{
-      border:1px solid #d1d5db; background:#fff; padding:8px 12px; border-radius:10px; cursor:pointer; transition:.15s ease; font-weight:600; display:flex; align-items:center; justify-content:center; line-height:1
+      background:rgba(15,23,42,.05); border:0; border-left:1px solid #d1d5db; border-right:1px solid #d1d5db; padding:0 12px; border-radius:0; cursor:pointer; transition:.15s ease; font-weight:600; display:flex; align-items:center; justify-content:center; line-height:1; height:100%
     }
-    header button:hover, header .file-btn-label:hover{background:#f3f4f6}
+    header button:hover, header .file-btn-label:hover{background:rgba(15,23,42,.15); color:inherit}
     header button:disabled{opacity:.5; cursor:not-allowed}
-    header button:disabled:hover{background:#fff}
+    header button:disabled:hover{color:inherit}
+    #btnSettings{border-right:0}
     .emoji{font-size:1.6em; line-height:1}
     .btn-group{display:flex; align-items:stretch; gap:0}
     .btn-group > *{margin:0; display:flex; align-items:center; justify-content:center}
@@ -46,15 +47,7 @@
     .btn-group > button,
     .btn-group > .file-btn-label,
     .btn-group > .dropdown > button{border-radius:0; font-weight:inherit; font-size:inherit; text-transform:none}
-    .btn-group > button:not(:first-child),
-    .btn-group > .file-btn-label:not(:first-child),
-    .btn-group > .dropdown:not(:first-child) > button{margin-left:-1px}
-    .btn-group > button:first-child,
-    .btn-group > .file-btn-label:first-child,
-    .btn-group > .dropdown:first-child > button{border-top-left-radius:10px; border-bottom-left-radius:10px}
-    .btn-group > button:last-child,
-    .btn-group > .file-btn-label:last-child,
-    .btn-group > .dropdown:last-child > button{border-top-right-radius:10px; border-bottom-right-radius:10px}
+    .btn-group > *:not(:first-child){border-left:0}
     header .file-input{display:none}
 
     /* Export dropdown */
@@ -150,8 +143,8 @@
           <button type="button" data-action="export-png-grid">Export PNG + Linien</button>
         </div>
       </div>
+      <button id="btnSettings" title="Einstellungen"><span class="emoji">⚙️</span> Einstellungen</button>
     </div>
-    <button id="btnSettings" title="Einstellungen"><span class="emoji">⚙️</span></button>
     <input id="fileImportJSON" class="file-input" type="file" accept="application/json" />
   </header>
 
