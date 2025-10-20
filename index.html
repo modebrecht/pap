@@ -4,7 +4,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>🧭 PAP Builder - v1.4</title>
+  <title>🧭 PAP Builder - v1.5</title>
   <style>
     :root{
       --bg:#f6f7fb;
@@ -352,6 +352,8 @@
     viewportHeight: 0,
     maxViewportWidth: 0,
     maxViewportHeight: 0,
+    stageWidth: 0,
+    stageHeight: 0,
     showArrows: true,
     fontSize: 12,
     sidebarCollapsed: false,
@@ -884,25 +886,25 @@
     if(!stageWrap || !canvas) return;
     const availableWidth = Math.max(1, Math.floor(mainArea?.clientWidth || stageWrap.clientWidth || state.viewportWidth || 1));
     const availableHeight = Math.max(1, Math.floor(mainArea?.clientHeight || stageWrap.clientHeight || state.viewportHeight || 1));
+    const previousStageWidth = Math.max(0, Math.floor(state.stageWidth || 0));
+    const previousStageHeight = Math.max(0, Math.floor(state.stageHeight || 0));
     const baseWidth = state.horizontalUnlimited
       ? Math.max(availableWidth, Math.floor(state.maxViewportWidth || 0))
       : availableWidth;
     const baseHeight = state.verticalUnlimited
       ? Math.max(availableHeight, Math.floor(state.maxViewportHeight || 0))
       : availableHeight;
-    let targetWidth = baseWidth;
-    let targetHeight = baseHeight;
+    let targetWidth = Math.max(baseWidth, previousStageWidth);
+    let targetHeight = Math.max(baseHeight, previousStageHeight);
     const extents = computeNodeExtents();
     if(extents){
-      if(state.horizontalUnlimited){
-        targetWidth = Math.max(targetWidth, Math.ceil(extents.maxX + stageMargin));
-      }
-      if(state.verticalUnlimited){
-        targetHeight = Math.max(targetHeight, Math.ceil(extents.maxY + stageMargin));
-      }
+      targetWidth = Math.max(targetWidth, Math.ceil(extents.maxX + stageMargin));
+      targetHeight = Math.max(targetHeight, Math.ceil(extents.maxY + stageMargin));
     }
-    const w = Math.floor(targetWidth);
-    const h = Math.floor(targetHeight);
+    const w = Math.max(1, Math.floor(targetWidth));
+    const h = Math.max(1, Math.floor(targetHeight));
+    state.stageWidth = w;
+    state.stageHeight = h;
     if(state.horizontalUnlimited){
       stageWrap.style.width = `${w}px`;
     }else{
@@ -916,8 +918,8 @@
     canvas.setAttribute('viewBox', `0 0 ${w} ${h}`);
     canvas.setAttribute('width', w);
     canvas.setAttribute('height', h);
-    if(state.horizontalUnlimited && targetWidth > (state.maxViewportWidth || 0)) state.maxViewportWidth = targetWidth;
-    if(state.verticalUnlimited && targetHeight > (state.maxViewportHeight || 0)) state.maxViewportHeight = targetHeight;
+    if(state.horizontalUnlimited && w > (state.maxViewportWidth || 0)) state.maxViewportWidth = w;
+    if(state.verticalUnlimited && h > (state.maxViewportHeight || 0)) state.maxViewportHeight = h;
     if(!state.verticalUnlimited || !state.horizontalUnlimited) enforceConstraintsForAllNodes();
   }
   function requestStageSizeUpdate(){
@@ -966,6 +968,7 @@
     if(!state.verticalUnlimited){
       const viewportHeight = Math.max(1, state.viewportHeight || mainArea?.clientHeight || stageWrap.clientHeight || 1);
       state.maxViewportHeight = viewportHeight;
+      state.stageHeight = Math.floor(viewportHeight);
       enforceConstraintsForAllNodes();
     }
     requestStageSizeUpdate();
@@ -979,6 +982,7 @@
     if(!state.horizontalUnlimited){
       const viewportWidth = Math.max(1, state.viewportWidth || mainArea?.clientWidth || stageWrap.clientWidth || 1);
       state.maxViewportWidth = viewportWidth;
+      state.stageWidth = Math.floor(viewportWidth);
       enforceConstraintsForAllNodes();
     }
     requestStageSizeUpdate();
@@ -1631,6 +1635,8 @@
         floatingPalette: state.palettePosition,
         maxViewportWidth: state.maxViewportWidth || 0,
         maxViewportHeight: state.maxViewportHeight || 0,
+        stageWidth: state.stageWidth || 0,
+        stageHeight: state.stageHeight || 0,
         title: state.title.trim()
       }
     }, null, 2);
@@ -1647,6 +1653,8 @@
     layerCons.innerHTML = '';
     state.maxViewportWidth = 0;
     state.maxViewportHeight = 0;
+    state.stageWidth = 0;
+    state.stageHeight = 0;
     state.title = '';
 
     if(data?.meta){
@@ -1664,10 +1672,26 @@
       const metaMaxHeight = Number(data.meta.maxViewportHeight);
       if(Number.isFinite(metaMaxWidth) && metaMaxWidth > 0) state.maxViewportWidth = metaMaxWidth;
       if(Number.isFinite(metaMaxHeight) && metaMaxHeight > 0) state.maxViewportHeight = metaMaxHeight;
+      const metaStageWidth = Number(data.meta.stageWidth);
+      const metaStageHeight = Number(data.meta.stageHeight);
+      if(Number.isFinite(metaStageWidth) && metaStageWidth > 0) state.stageWidth = metaStageWidth;
+      if(Number.isFinite(metaStageHeight) && metaStageHeight > 0) state.stageHeight = metaStageHeight;
       if(typeof data.meta.title === 'string') state.title = data.meta.title.trim();
     }
-    const baseWidth = Math.max(1, state.maxViewportWidth || state.viewportWidth || mainArea?.clientWidth || stageWrap?.clientWidth || 1);
-    const baseHeight = Math.max(1, state.maxViewportHeight || state.viewportHeight || mainArea?.clientHeight || stageWrap?.clientHeight || 1);
+    const viewportFallbackWidth = Math.floor(state.viewportWidth || mainArea?.clientWidth || stageWrap?.clientWidth || 1);
+    const viewportFallbackHeight = Math.floor(state.viewportHeight || mainArea?.clientHeight || stageWrap?.clientHeight || 1);
+    const baseWidth = Math.max(
+      1,
+      Math.floor(state.stageWidth || 0),
+      Math.floor(state.maxViewportWidth || 0),
+      viewportFallbackWidth
+    );
+    const baseHeight = Math.max(
+      1,
+      Math.floor(state.stageHeight || 0),
+      Math.floor(state.maxViewportHeight || 0),
+      viewportFallbackHeight
+    );
     if(stageWrap){
       if(state.horizontalUnlimited){
         stageWrap.style.width = `${Math.floor(baseWidth)}px`;
@@ -1685,6 +1709,8 @@
       canvas.setAttribute('width', Math.floor(baseWidth));
       canvas.setAttribute('height', Math.floor(baseHeight));
     }
+    state.stageWidth = Math.floor(baseWidth);
+    state.stageHeight = Math.floor(baseHeight);
     applyFontSize();
     applyGridToCanvas();
 
@@ -1738,6 +1764,8 @@
     const baseHeight = Math.max(1, state.viewportHeight || mainArea?.clientHeight || stageWrap?.clientHeight || 1);
     state.maxViewportWidth = baseWidth;
     state.maxViewportHeight = baseHeight;
+    state.stageWidth = Math.floor(baseWidth);
+    state.stageHeight = Math.floor(baseHeight);
     if(stageWrap){
       if(state.horizontalUnlimited){
         stageWrap.style.width = `${Math.floor(baseWidth)}px`;
