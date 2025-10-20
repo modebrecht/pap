@@ -104,30 +104,6 @@
     .toast{position:fixed; right:12px; bottom:12px; background:#111827; color:#e5e7eb; padding:10px 12px; border-radius:12px; font-weight:600; opacity:0; transform:translateY(8px); transition:.2s ease}
     .toast.show{opacity:1; transform:translateY(0)}
 
-    .welcome-screen{position:fixed; inset:0; background:linear-gradient(130deg, rgba(255,255,255,.96), rgba(229,231,235,.94)); display:none; align-items:center; justify-content:center; z-index:120; padding:40px 24px}
-    .welcome-screen.show{display:flex}
-    .welcome-panel{width:min(960px, 100%); background:#ffffff; border-radius:18px; box-shadow:0 30px 80px rgba(15,23,42,.12); display:grid; grid-template-columns:1fr 1fr; gap:32px; padding:32px; position:relative; overflow:hidden}
-    .welcome-panel::after{content:''; position:absolute; inset:auto -120px -160px auto; width:420px; height:420px; background:radial-gradient(circle at top, rgba(59,130,246,.12), transparent 70%); pointer-events:none}
-    .welcome-main{display:flex; flex-direction:column; gap:18px; position:relative; z-index:1}
-    .welcome-main h2{margin:0; font-size:26px; font-weight:700}
-    .welcome-main p{margin:0; font-size:15px; color:var(--muted); line-height:1.6}
-    .welcome-actions{display:flex; flex-direction:column; gap:12px}
-    .welcome-actions button{display:flex; align-items:center; gap:14px; padding:14px 18px; border-radius:14px; border:1px solid #e5e7eb; background:#f8fafc; font-weight:600; cursor:pointer; transition:.18s ease}
-    .welcome-actions button .icon{font-size:20px}
-    .welcome-actions button:hover{background:#eef2ff; border-color:#c7d2fe}
-    .welcome-actions button:active{transform:scale(.99)}
-    .welcome-secondary{display:flex; flex-direction:column; gap:18px; position:relative; z-index:1}
-    .welcome-secondary h3{margin:0; font-size:17px; font-weight:700}
-    .welcome-empty{display:none; padding:14px 16px; border:1px dashed #d1d5db; border-radius:12px; font-size:14px; color:var(--muted)}
-    .welcome-recents{display:flex; flex-direction:column; gap:10px; margin:0; padding:0}
-    .welcome-recents__item{border:1px solid #e5e7eb; border-radius:12px; overflow:hidden; background:#fff}
-    .welcome-recents__button{display:flex; flex-direction:column; width:100%; align-items:flex-start; padding:12px 14px; gap:6px; background:#ffffff; border:none; text-align:left; cursor:pointer; color:var(--ink) !important; font-size:14px; line-height:1.4; white-space:normal}
-    .welcome-recents__button:hover{background:#f8fafc}
-    .welcome-recents__button *{color:inherit !important}
-    .welcome-recents__title{font-size:15px; font-weight:600; color:var(--ink) !important; line-height:1.35}
-    .welcome-recents__meta{font-size:12px; color:var(--muted)}
-    body.welcome-active{overflow:hidden}
-
     /* Settings modal */
     .modal-backdrop{position:fixed; inset:0; background:rgba(0,0,0,.35); display:none; align-items:center; justify-content:center; z-index:50}
     .modal-backdrop.show{display:flex}
@@ -187,44 +163,7 @@
     </div>
     <button id="btnSettings" title="Einstellungen"><span class="emoji">⚙️</span></button>
     <input id="fileImportJSON" class="file-input" type="file" accept="application/json" />
-</header>
-
-  <div id="welcomeScreen" class="welcome-screen" aria-hidden="true">
-    <div class="welcome-panel" role="dialog" aria-labelledby="welcomeTitle">
-      <div class="welcome-main">
-        <h2 id="welcomeTitle">Willkommen! Womit m&ouml;chtest du starten?</h2>
-        <p>Erstelle ein neues PAP, beginne mit einer Vorlage oder setze deine Arbeit fort.</p>
-        <div class="welcome-actions">
-          <button id="btnWelcomeBlank">
-            <span class="icon">📝</span>
-            <span>
-              <div class="title">Neues leeres Projekt</div>
-              <div class="meta">Starte mit einer leeren Zeichenfl&auml;che.</div>
-            </span>
-          </button>
-          <button id="btnWelcomeTemplate">
-            <span class="icon">📄</span>
-            <span>
-              <div class="title">Mit Vorlage starten</div>
-              <div class="meta">Lade <code>template.json</code> als Ausgangspunkt.</div>
-            </span>
-          </button>
-          <button id="btnWelcomeImport">
-            <span class="icon">📂</span>
-            <span>
-              <div class="title">Projekt importieren</div>
-              <div class="meta">Eigene JSON-Datei &ouml;ffnen.</div>
-            </span>
-          </button>
-        </div>
-      </div>
-      <div class="welcome-secondary">
-        <h3>Zuletzt ge&ouml;ffnet</h3>
-        <div id="welcomeRecentList" class="welcome-recents"></div>
-        <div class="welcome-empty" id="welcomeEmptyState">Keine gespeicherten Projekte gefunden.</div>
-      </div>
-    </div>
-  </div>
+  </header>
 
   <aside>
     <div class="palette" id="paletteBausteine">
@@ -309,6 +248,19 @@
       </div>
       <div class="row">
         <div>
+          <div style="font-weight:600">Autosave</div>
+          <div style="font-size:12px; color:var(--muted)">Wie oft soll der aktuelle Stand automatisch gesichert werden?</div>
+        </div>
+        <select id="selectAutosave" style="padding:6px 8px; border-radius:10px; border:1px solid #d1d5db;">
+          <option value="0">Aus</option>
+          <option value="30000">Alle 30 Sekunden</option>
+          <option value="60000">Alle 60 Sekunden (Standard)</option>
+          <option value="90000">Alle 90 Sekunden</option>
+          <option value="180000">Alle 180 Sekunden</option>
+        </select>
+      </div>
+      <div class="row">
+        <div>
           <div style="font-weight:600">Vertikal: unbegrenzt</div>
           <div style="font-size:12px; color:var(--muted)">Deaktivieren, um den Arbeitsbereich nach oben/unten zu begrenzen</div>
         </div>
@@ -386,14 +338,13 @@
     fontSize: 12,
     sidebarCollapsed: false,
     title: '',
-    lastSavedKey: null,
-    welcomeVisible: false,
     palettePosition: {x:120, y:120},
     contextConnectorId: null,
     contextNodeId: null,
     dirty: false,
     tabId: null,
-    restoredFromAutosave: false
+    restoredFromAutosave: false,
+    autosaveMs: 60000
   };
 
   const $ = (sel,root=document)=>root.querySelector(sel);
@@ -406,12 +357,6 @@
   const mainArea = document.querySelector('main');
   const fileImport = document.getElementById('fileImportJSON');
   const inputTitle = document.getElementById('projectTitle');
-  const welcomeScreen = document.getElementById('welcomeScreen');
-  const welcomeRecentList = document.getElementById('welcomeRecentList');
-  const welcomeEmptyState = document.getElementById('welcomeEmptyState');
-  const btnWelcomeBlank = document.getElementById('btnWelcomeBlank');
-  const btnWelcomeTemplate = document.getElementById('btnWelcomeTemplate');
-  const btnWelcomeImport = document.getElementById('btnWelcomeImport');
   const btnNew = document.getElementById('btnNew');
   const btnImport = document.getElementById('btnImport');
   const ARROW_PADDING = 0;
@@ -441,22 +386,6 @@
   const measureCtx = measureCanvas.getContext('2d');
   if(measureCtx){ measureCtx.font = `${FONT_WEIGHT} ${state.fontSize}px ${FONT_FAMILY}`; }
 
-  function sanitizeTitle(rawTitle){
-    const raw = typeof rawTitle === 'string' ? rawTitle.trim() : '';
-    const base = raw || 'Projekt';
-    const normalized = typeof base.normalize === 'function' ? base.normalize('NFKD') : base;
-    let safe = normalized
-      .replace(/[\u0300-\u036f]/g, '')
-      .replace(/[^a-z0-9]+/gi, '_')
-      .replace(/^_+|_+$/g, '')
-      .toLowerCase();
-    if(!safe) safe = 'projekt';
-    return safe;
-  }
-  function titleSlug(){
-    return sanitizeTitle(state.title);
-  }
-
   // --- Autosave (per tab) ---
   function ensureTabId(){
     try{
@@ -466,43 +395,52 @@
     }catch{ return 'tab-'+Date.now().toString(36); }
   }
   state.tabId = ensureTabId();
-  const STORAGE_PREFIX = 'pap.save.';
-  const LEGACY_AUTOSAVE_PREFIX = 'pap.autosave.';
-  const STORAGE_LIMIT = 50;
-  const autosaveFallbackKey = 'pap.save.latest';
-  const legacyFallbackKey = 'pap.autosave.latest';
-  const autosaveKey = ()=>`${STORAGE_PREFIX}${titleSlug()}`;
-  function snapshotCurrentProject(reason='manual'){
-    try{
-      const hasContent = state.nodes.size > 0 || state.connectors.size > 0 || state.title.trim();
-      if(!hasContent && !state.dirty) return;
-      saveAutosave(true);
-    }catch(err){
-      console.warn('Projekt-Snapshot konnte nicht gespeichert werden', reason, err);
-    }
-  }
-
+  const autosaveKey = ()=>`pap.autosave.${state.tabId}`;
+  const autosaveFallbackKey = 'pap.autosave.latest';
+  let autosaveTimerId = null;
   const markDirty = ()=>{ state.dirty = true; };
   function saveAutosave(force=false){
     if(!force && !state.dirty) return;
     try{
       const json = serializeProject();
-      const key = autosaveKey();
-      if(state.lastSavedKey && state.lastSavedKey !== key){
-        try{ localStorage.removeItem(state.lastSavedKey); }catch{}
-      }
-      localStorage.setItem(key, json);
+      localStorage.setItem(autosaveKey(), json);
       localStorage.setItem(autosaveFallbackKey, json);
-      localStorage.setItem(legacyFallbackKey, json);
-      state.lastSavedKey = key;
       state.dirty = false;
-      if(state.welcomeVisible) renderRecentProjects();
     }catch(err){
       console.warn('Autosave konnte nicht gespeichert werden', err);
     }
   }
-
-  setInterval(()=>saveAutosave(true), 30000);
+  function readAutosaveSnapshot(){
+    const keys = [autosaveKey(), autosaveFallbackKey];
+    for(const key of keys){
+      try{
+        const raw = localStorage.getItem(key);
+        if(!raw) continue;
+        const data = JSON.parse(raw);
+        if(isValidSnapshot(data)) return data;
+        console.warn('Autosave verworfen (ungültiges Format)', key, data);
+      }catch(err){
+        console.warn('Autosave konnte nicht geladen werden', err);
+      }
+    }
+    return null;
+  }
+  function restoreAutosaveIfAny(){
+    const snapshot = readAutosaveSnapshot();
+    if(!snapshot) return;
+    loadFromData(snapshot);
+    state.restoredFromAutosave = true;
+    showToast('Autosave geladen');
+  }
+  function restartAutosaveTimer(){
+    if(autosaveTimerId !== null){
+      clearInterval(autosaveTimerId);
+      autosaveTimerId = null;
+    }
+    const delay = Number(state.autosaveMs);
+    if(!Number.isFinite(delay) || delay <= 0) return;
+    autosaveTimerId = window.setInterval(()=>saveAutosave(true), delay);
+  }
   window.addEventListener('beforeunload', ()=>{ try{ saveAutosave(true); }catch{} });
 
   // Resize SVG viewBox to pixel size for easy math
@@ -539,6 +477,8 @@
       const fontSize = Number(s.fontSize);
       if(Number.isFinite(fontSize)) state.fontSize = clampFontSize(fontSize);
       if(typeof s.sidebarCollapsed==='boolean') state.sidebarCollapsed = s.sidebarCollapsed;
+      const autosaveMs = Number(s.autosaveMs);
+      if(Number.isFinite(autosaveMs) && autosaveMs >= 0) state.autosaveMs = autosaveMs;
       if(s.palettePosition) state.palettePosition = sanitizePalettePosition(s.palettePosition);
     }catch{}
   }
@@ -552,6 +492,7 @@
         showArrows: state.showArrows,
         fontSize: state.fontSize,
         sidebarCollapsed: state.sidebarCollapsed,
+        autosaveMs: state.autosaveMs,
         palettePosition: state.palettePosition
       }));
     }catch{}
@@ -565,6 +506,7 @@
   const toggleVerticalUnlimited = document.getElementById('toggleVerticalUnlimited');
   const toggleHorizontalUnlimited = document.getElementById('toggleHorizontalUnlimited');
   const toggleArrows = document.getElementById('toggleArrows');
+  const selectAutosave = document.getElementById('selectAutosave');
 
   function updateVerbinderUI(){
     if(verbinderTile) verbinderTile.style.display = state.showVerbinder ? '' : 'none';
@@ -582,6 +524,11 @@
     }
     selectGrid.value = value;
   }
+  function updateAutosaveUI(){
+    if(!selectAutosave) return;
+    const value = Number(state.autosaveMs);
+    selectAutosave.value = String(Number.isFinite(value) && value >= 0 ? value : 60000);
+  }
   function updateTitleValidity(){
     if(!inputTitle) return;
     const valid = state.title.trim().length > 0;
@@ -591,115 +538,6 @@
     if(!inputTitle) return;
     inputTitle.value = state.title;
     updateTitleValidity();
-  }
-  function listStoredProjects(){
-    const entries = [];
-    const fallbackEntries = [];
-    let total = 0;
-    try{
-      total = localStorage.length;
-    }catch(err){
-      console.warn('Lokale Projekte konnten nicht gelesen werden', err);
-      return entries;
-    }
-    for(let i=0;i<total;i++){
-      const key = localStorage.key(i);
-      if(!key) continue;
-      const isPrimary = key.startsWith(STORAGE_PREFIX);
-      const isLegacy = key.startsWith(LEGACY_AUTOSAVE_PREFIX);
-      if(!isPrimary && !isLegacy) continue;
-      const isFallback = key === autosaveFallbackKey || key === legacyFallbackKey;
-      let raw;
-      try{
-        raw = localStorage.getItem(key);
-      }catch{ continue; }
-      if(!raw) continue;
-      try{
-        const data = JSON.parse(raw);
-        if(!isValidSnapshot(data)) continue;
-        const meta = data.meta || {};
-        const savedAt = Date.parse(meta.savedAt || '') || 0;
-        const title = typeof meta.title === 'string' && meta.title.trim() ? meta.title.trim() : null;
-        const entry = {key, title, savedAt, raw, data, isFallback, isPrimary};
-        if(isFallback) fallbackEntries.push(entry);
-        else entries.push(entry);
-      }catch{
-        continue;
-      }
-    }
-    if(entries.length === 0 && fallbackEntries.length){
-      entries.push(...fallbackEntries);
-    }
-    entries.sort((a,b)=> (b.savedAt||0) - (a.savedAt||0));
-    return entries.slice(0, STORAGE_LIMIT);
-  }
-  function renderRecentProjects(){
-    if(!welcomeRecentList || !welcomeEmptyState) return;
-    const entries = listStoredProjects();
-    welcomeRecentList.innerHTML = '';
-    if(entries.length === 0){
-      welcomeEmptyState.style.display = 'block';
-      return;
-    }
-    welcomeEmptyState.style.display = 'none';
-    for(const entry of entries){
-      const container = document.createElement('div');
-      container.className = 'welcome-recents__item';
-      const btn = document.createElement('button');
-      btn.type = 'button';
-      btn.className = 'welcome-recents__button';
-      btn.dataset.autosaveKey = entry.key;
-      const titleText = entry.title || 'Unbenanntes Projekt';
-      const date = entry.savedAt ? new Date(entry.savedAt).toLocaleString() : 'Zeitstempel unbekannt';
-      btn.innerHTML = `<div class="welcome-recents__title">${titleText}</div><div class="welcome-recents__meta">${date}</div>`;
-      container.appendChild(btn);
-      welcomeRecentList.appendChild(container);
-    }
-  }
-  function showWelcomeScreen(){
-    if(!welcomeScreen) return;
-    state.welcomeVisible = true;
-    welcomeScreen.classList.add('show');
-    welcomeScreen.setAttribute('aria-hidden','false');
-    document.body.classList.add('welcome-active');
-    renderRecentProjects();
-    updateTitleInput();
-  }
-  function hideWelcomeScreen(){
-    if(!welcomeScreen) return;
-    state.welcomeVisible = false;
-    welcomeScreen.classList.remove('show');
-    welcomeScreen.setAttribute('aria-hidden','true');
-    document.body.classList.remove('welcome-active');
-  }
-  function openAutosaveEntry(key){
-    snapshotCurrentProject('open-project');
-    if(!key) return;
-    try{
-      const raw = localStorage.getItem(key);
-      if(!raw){ showToast('Projekt nicht gefunden'); return; }
-      const data = JSON.parse(raw);
-      if(!isValidSnapshot(data)) throw new Error('Ungueltiges Format');
-      loadFromData(data);
-      showToast('Projekt geladen');
-    }catch(err){
-      console.error('Autosave konnte nicht geladen werden', err);
-      showToast('Projekt konnte nicht geladen werden');
-    }
-  }
-  function startTemplateProject(){
-    snapshotCurrentProject('start-template');
-    fetch('template.json', {cache:'no-store'}).then(res=>{
-      if(!res.ok) throw new Error(`HTTP ${res.status}`);
-      return res.json();
-    }).then(data=>{
-      if(!isValidSnapshot(data)) throw new Error('Ungueltiges Format');
-      loadFromData(data);
-      showToast('Vorlage geladen');
-    }).catch(err=>{
-      console.error('Vorlage konnte nicht geladen werden', err);
-      showToast('Vorlage konnte nicht geladen werden');
-    });
   }
   function applyOverflowModes(){
     document.body.classList.toggle('horizontal-unlimited', !!state.horizontalUnlimited);
@@ -1072,6 +910,20 @@
     saveSettings();
     showToast(state.showVerbinder ? 'Verbinder eingeblendet' : 'Verbinder ausgeblendet');
   }
+  function setAutosaveMs(value){
+    const delay = Number(value);
+    if(!Number.isFinite(delay) || delay < 0) return;
+    if(state.autosaveMs === delay){
+      updateAutosaveUI();
+      return;
+    }
+    state.autosaveMs = delay;
+    restartAutosaveTimer();
+    updateAutosaveUI();
+    saveSettings();
+    const message = delay === 0 ? 'Autosave deaktiviert' : `Autosave alle ${Math.round(delay/1000)} Sekunden`;
+    showToast(message);
+  }
   function setGridSize(value){
     const size = Number(value);
     if(!Number.isFinite(size) || size <= 0) return;
@@ -1181,8 +1033,15 @@
     return false;
   }
   function projectFileName(ext='json'){
-    const slug = sanitizeTitle(state.title);
-    const truncated = slug.slice(0, 60).replace(/-+$/g, '') || slug;
+    const raw = state.title?.trim() || 'Projekt';
+    let safe = raw
+      .normalize('NFKD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/[^a-z0-9]+/gi, '-')
+      .replace(/^-+|-+$/g, '')
+      .toLowerCase();
+    if(!safe) safe = 'projekt';
+    const truncated = safe.slice(0, 60).replace(/-+$/g, '') || safe;
     return `${truncated}.${ext}`;
   }
 
@@ -1194,12 +1053,14 @@
   applyGridToCanvas();
   updateVerbinderUI();
   updateGridUI();
+  updateAutosaveUI();
   updateUnlimitedUI();
   applyArrowsToCanvas();
   updateArrowsUI();
   setSidebarCollapsed(state.sidebarCollapsed, {silent:true});
   applyPalettePosition();
-  showWelcomeScreen();
+  restartAutosaveTimer();
+  restoreAutosaveIfAny();
   updateTitleInput();
 
   if(btnSettings) btnSettings.addEventListener('click', openSettings);
@@ -1207,6 +1068,7 @@
   if(modal) modal.addEventListener('click', (e)=>{ if(e.target===modal) closeSettings(); });
   if(chkVerbinder) chkVerbinder.addEventListener('change', (e)=> setShowVerbinder(e.target.checked));
   if(selectGrid) selectGrid.addEventListener('change', (e)=> setGridSize(e.target.value));
+  if(selectAutosave) selectAutosave.addEventListener('change', (e)=> setAutosaveMs(e.target.value));
   if(toggleVerticalUnlimited) toggleVerticalUnlimited.addEventListener('change', (e)=> setVerticalUnlimited(e.target.checked));
   if(toggleHorizontalUnlimited) toggleHorizontalUnlimited.addEventListener('change', (e)=> setHorizontalUnlimited(e.target.checked));
   if(toggleArrows) toggleArrows.addEventListener('change', (e)=> setShowArrows(e.target.checked));
@@ -1262,28 +1124,6 @@
       const proceed = confirm('Start new project? Unsaved changes will be lost.');
       if(!proceed) return;
       startNewProject();
-    });
-  }
-  if(btnWelcomeBlank){
-    btnWelcomeBlank.addEventListener('click', ()=>{
-      startNewProject();
-    });
-  }
-  if(btnWelcomeTemplate){
-    btnWelcomeTemplate.addEventListener('click', ()=>{
-      startTemplateProject();
-    });
-  }
-  if(btnWelcomeImport){
-    btnWelcomeImport.addEventListener('click', ()=>{
-      if(fileImport) fileImport.click();
-    });
-  }
-  if(welcomeRecentList){
-    welcomeRecentList.addEventListener('click', (e)=>{
-      const target = e.target.closest('button[data-autosave-key]');
-      if(!target) return;
-      openAutosaveEntry(target.dataset.autosaveKey);
     });
   }
   document.addEventListener('click', (e)=>{
@@ -1662,8 +1502,6 @@
     state.maxViewportWidth = 0;
     state.maxViewportHeight = 0;
     state.title = '';
-    hideWelcomeScreen();
-    state.restoredFromAutosave = true;
 
     if(data?.meta){
       if(data.meta.hasOwnProperty('grid')){
@@ -1735,15 +1573,11 @@
     setSidebarCollapsed(state.sidebarCollapsed, {silent:true});
     applyPalettePosition();
     updateTitleInput();
-    state.lastSavedKey = `${STORAGE_PREFIX}${sanitizeTitle(state.title)}`;
     state.dirty = false;
   }
 
   function startNewProject(){
     closeAllMenus();
-    snapshotCurrentProject('start-new-project');
-    hideWelcomeScreen();
-    state.lastSavedKey = null;
     state.nodes.clear();
     state.connectors.clear();
     layerNodes.innerHTML = '';
@@ -1784,9 +1618,6 @@
     updateUnlimitedUI();
     updateArrowsUI();
     updateTitleInput();
-    if(inputTitle){
-      inputTitle.focus();
-    }
     setSidebarCollapsed(state.sidebarCollapsed, {silent:true});
     applyPalettePosition();
     requestStageSizeUpdate();
@@ -1794,7 +1625,6 @@
     try{
       localStorage.removeItem(autosaveKey());
       localStorage.removeItem(autosaveFallbackKey);
-      localStorage.removeItem(legacyFallbackKey);
     }catch{}
     saveAutosave(true);
     state.dirty = false;
@@ -1839,7 +1669,7 @@
 
   if(fileImport){
     fileImport.addEventListener('change', (e)=>{
-      const file=e.target.files?.[0]; if(!file) return; snapshotCurrentProject('import-before'); const reader=new FileReader();
+      const file=e.target.files?.[0]; if(!file) return; const reader=new FileReader();
       reader.onload=()=>{ try{ const data=JSON.parse(reader.result); loadFromData(data); showToast('Projekt geladen'); }catch(err){ alert('Fehler beim Laden: '+err.message); } };
       reader.readAsText(file);
     });
@@ -1891,7 +1721,7 @@
       if(withGrid){ const prev=ctx.globalCompositeOperation; ctx.globalCompositeOperation='destination-over'; drawGrid(ctx,w,h,state.grid); ctx.globalCompositeOperation=prev; }
       URL.revokeObjectURL(url);
       const png=c.toDataURL('image/png'); const a=document.createElement('a'); a.href=png;
-      const base = projectFileName('png');
+      const base = projectFileName(withGrid ? 'png' : 'png');
       a.download = withGrid ? base.replace(/\.png$/, '-grid.png') : base;
       a.click();
     };
@@ -1916,7 +1746,7 @@
   function showToast(msg){ toast.textContent=msg; toast.classList.add('show'); clearTimeout(showToast.tid); showToast.tid=setTimeout(()=>toast.classList.remove('show'), 1400); }
 
   // Demo content (skipped if autosave restored)
-  (function demo(){ if(state.restoredFromAutosave || state.welcomeVisible) return; const a=createNode('terminator',220,140); a.label='Start'; const b=createNode('process',420,140); b.label='Initialisiere'; const c=createNode('decision',620,140); c.label='Bedingung?'; const d=createNode('process',620,280); d.label='Alternative'; [a,b,c,d].forEach(renderNode); renderConnector(createConnector(a.id,b.id)); renderConnector(createConnector(b.id,c.id)); renderConnector(createConnector(c.id,d.id)); })();
+  (function demo(){ if(state.restoredFromAutosave) return; const a=createNode('terminator',220,140); a.label='Start'; const b=createNode('process',420,140); b.label='Initialisiere'; const c=createNode('decision',620,140); c.label='Bedingung?'; const d=createNode('process',620,280); d.label='Alternative'; [a,b,c,d].forEach(renderNode); renderConnector(createConnector(a.id,b.id)); renderConnector(createConnector(b.id,c.id)); renderConnector(createConnector(c.id,d.id)); })();
 
   // --- Self-tests (basic & extra) ---
   (function runSelfTests(){
@@ -1945,11 +1775,6 @@
     }catch(err){ console.error('Self-tests failed:', err); }
   })();
 
-  
-</script>
+  </script>
 </body>
 </html>
-
-
-
-
