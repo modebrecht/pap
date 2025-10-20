@@ -1402,6 +1402,26 @@
     if(nodeBlocksArrow(from) || nodeBlocksArrow(to)) return false;
     return true;
   }
+  function rayPolygonIntersection(dir, polygon){
+    const EPS = 1e-6;
+    let bestT = Infinity;
+    let bestPoint = null;
+    for(let i=0;i<polygon.length;i++){
+      const a = polygon[i];
+      const b = polygon[(i+1)%polygon.length];
+      const edge = {x:b.x - a.x, y:b.y - a.y};
+      const denom = dir.x * edge.y - dir.y * edge.x;
+      if(Math.abs(denom) < EPS) continue;
+      const diff = {x:a.x, y:a.y};
+      const t = (diff.x * edge.y - diff.y * edge.x) / denom;
+      const u = (diff.x * dir.y - diff.y * dir.x) / denom;
+      if(t >= 0 && u >= 0 && u <= 1 && t < bestT){
+        bestT = t;
+        bestPoint = {x: dir.x * t, y: dir.y * t};
+      }
+    }
+    return bestPoint;
+  }
   function pointOnNodeEdge(node, target){
     const dx = target.x - node.x;
     const dy = target.y - node.y;
@@ -1417,6 +1437,21 @@
       const hh = node.h/2;
       const scale = 1 / ((Math.abs(dx)/hw) + (Math.abs(dy)/hh));
       return {x: node.x + dx*scale, y: node.y + dy*scale};
+    }
+    if(type === 'io'){
+      const skew = 26;
+      const hw = node.w/2;
+      const hh = node.h/2;
+      const polygon = [
+        {x:-hw + skew, y:-hh},
+        {x: hw,        y:-hh},
+        {x: hw - skew, y: hh},
+        {x:-hw,        y: hh}
+      ];
+      const hit = rayPolygonIntersection({x:dx, y:dy}, polygon);
+      if(hit){
+        return {x: node.x + hit.x, y: node.y + hit.y};
+      }
     }
     const hw = node.w/2;
     const hh = node.h/2;
