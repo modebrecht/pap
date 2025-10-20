@@ -136,6 +136,12 @@
     .context-menu{position:fixed; display:none; min-width:160px; background:#111827; color:#f8fafc; border-radius:10px; padding:6px 0; box-shadow:0 8px 24px rgba(15,23,42,.25); z-index:100; font-size:13px}
     .context-menu button{width:100%; padding:8px 14px; background:none; border:none; color:inherit; text-align:left; cursor:pointer}
     .context-menu button:hover{background:rgba(255,255,255,.1)}
+    .context-menu .menu-divider{height:1px; margin:6px 0; background:rgba(255,255,255,.14)}
+    .context-menu .menu-label{padding:4px 14px; font-size:11px; text-transform:uppercase; letter-spacing:.08em; opacity:.65; cursor:default}
+    .context-menu .menu-inline{display:flex; flex-wrap:wrap; gap:4px; padding:4px 14px 8px}
+    .context-menu .menu-inline button{width:auto; flex:1 1 30%; padding:6px 8px; border-radius:6px; border:1px solid rgba(255,255,255,.15); background:rgba(148,163,184,.15); text-align:center}
+    .context-menu .menu-inline button:hover{background:rgba(59,130,246,.25)}
+    .context-menu .menu-inline button.active{background:rgba(59,130,246,.4); border-color:rgba(59,130,246,.6)}
     .floating-palette{position:fixed; top:120px; left:120px; width:208px; max-width:90vw; max-height:70vh; overflow:auto; background:var(--panel); color:var(--panel-ink); border-radius:16px; box-shadow:var(--shadow); padding:14px; display:none; z-index:80}
     .floating-palette.show{display:block}
     .floating-palette .palette{margin:0}
@@ -316,6 +322,17 @@
     <button type="button" id="connectorToggleArrow">Pfeil ausblenden</button>
   </div>
   <div class="context-menu" id="nodeMenu" role="menu">
+    <button type="button" id="nodeRename">Umbenennen</button>
+    <div class="menu-label">H&ouml;he</div>
+    <div class="menu-inline" id="nodeHeightOptions">
+      <button type="button" data-height="0.8">0.8x</button>
+      <button type="button" data-height="1">1.0x</button>
+      <button type="button" data-height="1.5">1.5x</button>
+      <button type="button" data-height="2">2.0x</button>
+      <button type="button" data-height="2.5">2.5x</button>
+      <button type="button" data-height="3">3.0x</button>
+    </div>
+    <div class="menu-divider"></div>
     <button type="button" id="nodeDelete">Baustein l&ouml;schen</button>
   </div>
 
@@ -368,6 +385,8 @@
   let connectorMenuVisible = false;
   const nodeMenu = document.getElementById('nodeMenu');
   const nodeDelete = document.getElementById('nodeDelete');
+  const nodeRenameButton = document.getElementById('nodeRename');
+  const nodeHeightOptions = document.getElementById('nodeHeightOptions');
   const btnFontIncrease = document.getElementById('btnFontIncrease');
   const btnFontDecrease = document.getElementById('btnFontDecrease');
   const paletteBausteine = document.getElementById('paletteBausteine');
@@ -386,6 +405,8 @@
   const measureCanvas = document.createElement('canvas');
   const measureCtx = measureCanvas.getContext('2d');
   if(measureCtx){ measureCtx.font = `${FONT_WEIGHT} ${state.fontSize}px ${FONT_FAMILY}`; }
+  const BASE_NODE_HEIGHT = 70;
+  const NODE_HEIGHT_OPTIONS = [0.8, 1, 1.5, 2, 2.5, 3];
 
   // --- Autosave (per tab) ---
   function ensureTabId(){
@@ -836,6 +857,7 @@
     state.contextNodeId = nodeId;
     nodeMenuVisible = true;
     if(nodeMenu) nodeMenu.style.display = 'block';
+    updateNodeMenuUI(nodeId);
     const menuRect = nodeMenu?.getBoundingClientRect() || {width:150,height:60};
     let left = clientX + 4;
     let top = clientY + 4;
@@ -1086,6 +1108,16 @@
     if(state.contextConnectorId){ deleteConnector(state.contextConnectorId); }
     closeConnectorMenu();
   });
+  if(nodeRenameButton) nodeRenameButton.addEventListener('click', ()=>{
+    if(state.contextNodeId){ promptRenameNode(state.contextNodeId); }
+  });
+  if(nodeHeightOptions) nodeHeightOptions.addEventListener('click', (e)=>{
+    const btn = e.target.closest('button[data-height]');
+    if(!btn) return;
+    e.preventDefault();
+    e.stopPropagation();
+    if(state.contextNodeId) setNodeHeightScale(state.contextNodeId, btn.dataset.height);
+  });
   if(nodeDelete) nodeDelete.addEventListener('click', ()=>{
     if(state.contextNodeId){ deleteNode(state.contextNodeId); }
     closeNodeMenu();
@@ -1169,9 +1201,18 @@
   function nextId(prefix){ return `${prefix}-${state.idCounter++}`; }
 
   function createNode(type, x, y){
-    const base = { w:160, h:70 };
+    const base = { w:160, h:BASE_NODE_HEIGHT };
     let label = { terminator:'Start/Ende', process:'Prozess', decision:'Entscheidung?', io:'Ein-/Ausgabe', connector:'Verbinder' }[type] || 'Knoten';
-    const node = { id: nextId('n'), type, x, y, w: base.w, h: base.h, label };
+    const node = {
+      id: nextId('n'),
+      type,
+      x,
+      y,
+      w: base.w,
+      h: base.h,
+      label,
+      heightScale: 1
+    };
     applyNodeConstraints(node);
     state.nodes.set(node.id, node);
     markDirty();
@@ -1193,10 +1234,17 @@
         openNodeMenu(node.id, e.clientX, e.clientY);
       });
     }
+    const scale = currentNodeHeightScale(node);
+    node.heightScale = scale;
+    if(!Number.isFinite(node.h) || node.h <= 0){
+      node.h = Math.round(BASE_NODE_HEIGHT * scale);
+    }
     g.setAttribute('transform', `translate(${node.x - node.w/2}, ${node.y - node.h/2})`);
     g.innerHTML = '';
 
-    const shape = shapeElement(node); shape.setAttribute('class','node-shape'); g.appendChild(shape);
+    const shape = shapeElement(node);
+    shape.setAttribute('class','node-shape');
+    g.appendChild(shape);
 
     const text = document.createElementNS('http://www.w3.org/2000/svg','text');
     text.setAttribute('text-anchor','middle');
@@ -1221,6 +1269,38 @@
 
     updateConnectorsFor(node.id);
     requestStageSizeUpdate();
+  }
+
+  function currentNodeHeightScale(node){
+    if(!node) return 1;
+    const raw = Number(node.heightScale);
+    if(Number.isFinite(raw) && raw > 0) return raw;
+    const inferred = Number(node.h) / BASE_NODE_HEIGHT;
+    if(Number.isFinite(inferred) && inferred > 0) return inferred;
+    return 1;
+  }
+  function snapHeightOption(value){
+    let best = NODE_HEIGHT_OPTIONS[0];
+    let bestDiff = Math.abs(value - best);
+    for(const option of NODE_HEIGHT_OPTIONS){
+      const diff = Math.abs(option - value);
+      if(diff < bestDiff){
+        best = option;
+        bestDiff = diff;
+      }
+    }
+    return best;
+  }
+  function updateNodeMenuUI(nodeId){
+    if(!nodeHeightOptions) return;
+    const node = state.nodes.get(nodeId);
+    if(!node) return;
+    const scale = currentNodeHeightScale(node);
+    const activeScale = snapHeightOption(scale);
+    nodeHeightOptions.querySelectorAll('button[data-height]').forEach(btn=>{
+      const btnScale = Number(btn.dataset.height);
+      btn.classList.toggle('active', Number.isFinite(btnScale) && Math.abs(btnScale - activeScale) < 0.01);
+    });
   }
 
   function shapeElement(node){
@@ -1262,11 +1342,21 @@
   });
 
   // Rename
-  function renameNode(){
+  function promptRenameNode(nodeId){
+    const node = state.nodes.get(nodeId);
+    if(!node) return;
     closeAllMenus();
-    const id = this.id; const node = state.nodes.get(id);
     const text = prompt('Neuer Text für diese Form:', node.label);
-    if(text!==null){ node.label = text.trim() || node.label; renderNode(node); markDirty(); }
+    if(text!==null){
+      const trimmed = text.trim();
+      if(trimmed) node.label = trimmed;
+      renderNode(node);
+      markDirty();
+      select({type:'node', id:nodeId});
+    }
+  }
+  function renameNode(){
+    promptRenameNode(this.id);
   }
 
   // Dragging
@@ -1459,6 +1549,26 @@
     if(hit) hit.remove();
     markDirty();
   }
+  function setNodeHeightScale(nodeId, scale){
+    const node = state.nodes.get(nodeId);
+    if(!node) return;
+    let desired = Number(scale);
+    if(!Number.isFinite(desired) || desired <= 0) return;
+    if(!NODE_HEIGHT_OPTIONS.includes(desired)){
+      desired = snapHeightOption(desired);
+    }
+    const current = currentNodeHeightScale(node);
+    if(Math.abs(current - desired) < 0.01 && Math.round(node.h) === Math.round(BASE_NODE_HEIGHT * desired)){
+      if(state.contextNodeId === nodeId) updateNodeMenuUI(nodeId);
+      return;
+    }
+    node.heightScale = desired;
+    node.h = Math.round(BASE_NODE_HEIGHT * desired);
+    applyNodeConstraints(node);
+    renderNode(node);
+    markDirty();
+    if(state.contextNodeId === nodeId) updateNodeMenuUI(nodeId);
+  }
   function duplicateNode(id){
     const n=state.nodes.get(id);
     if(!n) return;
@@ -1641,8 +1751,16 @@
     const width = Number(raw?.w);
     const height = Number(raw?.h);
     node.w = Number.isFinite(width) && width > 0 ? width : 160;
-    node.h = Number.isFinite(height) && height > 0 ? height : 70;
+    node.h = Number.isFinite(height) && height > 0 ? height : BASE_NODE_HEIGHT;
+    node.h = Math.max(20, node.h);
     node.label = typeof raw?.label === 'string' ? raw.label : 'Knoten';
+    const rawScale = Number(raw?.heightScale);
+    if(Number.isFinite(rawScale) && rawScale > 0){
+      node.heightScale = rawScale;
+    }else{
+      const inferred = Number(node.h) / BASE_NODE_HEIGHT;
+      node.heightScale = Number.isFinite(inferred) && inferred > 0 ? inferred : 1;
+    }
     return node;
   }
 
