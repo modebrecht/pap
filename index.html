@@ -19,6 +19,7 @@
       --node-selected:#3b82f6;
       --shadow:0 10px 30px rgba(0,0,0,.08);
       --grid-step:20px;
+      --grid-color:#e5e7eb;
       --node-font-size:12px;
       --node-font-family:system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;
     }
@@ -85,8 +86,8 @@
 
     /* SVG canvas + grid */
     #canvas{display:block; background:
-      linear-gradient(transparent calc(var(--grid-step) - 1px), #e5e7eb calc(var(--grid-step))),
-      linear-gradient(90deg, transparent calc(var(--grid-step) - 1px), #e5e7eb calc(var(--grid-step)));
+      linear-gradient(transparent calc(var(--grid-step) - 1px), var(--grid-color) calc(var(--grid-step))),
+      linear-gradient(90deg, transparent calc(var(--grid-step) - 1px), var(--grid-color) calc(var(--grid-step)));
       background-size:var(--grid-step) var(--grid-step); background-position:0 0;
     }
 
@@ -157,7 +158,7 @@
         <div class="menu" id="menuExport" role="menu" aria-hidden="true">
           <button type="button" data-action="export-json">Export JSON</button>
           <button type="button" data-action="export-png">Export PNG</button>
-          <button type="button" data-action="export-png-grid">Export PNG + Linien</button>
+          <button type="button" data-action="export-png-grid">Export PNG + Gitter</button>
         </div>
       </div>
     </div>
@@ -1689,52 +1690,116 @@
 
   function exportPNG(withGrid=false){
     if(!ensureTitleFilled()) return;
-    const r = canvas.getBoundingClientRect();
-    const clone = canvas.cloneNode(true);
+    if(!canvas) return;
 
-    // Inline CSS so the blob knows our styles
-    const cssVar=(name,fallback)=>{ try{ return getComputedStyle(document.documentElement).getPropertyValue(name).trim()||fallback; }catch{ return fallback; } };
-    const style=document.createElementNS('http://www.w3.org/2000/svg','style');
+    const rect = canvas.getBoundingClientRect();
+    const fallbackWidth = Number(canvas.getAttribute('width')) || canvas.viewBox?.baseVal?.width || canvas.clientWidth;
+    const fallbackHeight = Number(canvas.getAttribute('height')) || canvas.viewBox?.baseVal?.height || canvas.clientHeight;
+    const primaryWidth = Math.floor(rect.width);
+    const secondaryWidth = Math.floor(fallbackWidth || 0);
+    const primaryHeight = Math.floor(rect.height);
+    const secondaryHeight = Math.floor(fallbackHeight || 0);
+    const width = primaryWidth > 0 ? primaryWidth : (secondaryWidth > 0 ? secondaryWidth : 1);
+    const height = primaryHeight > 0 ? primaryHeight : (secondaryHeight > 0 ? secondaryHeight : 1);
+
+    const clone = canvas.cloneNode(true);
+    clone.setAttribute('width', width);
+    clone.setAttribute('height', height);
+    clone.setAttribute('viewBox', `0 0 ${width} ${height}`);
+
+    const cssVar = (name, fallback)=>{ try{ return getComputedStyle(document.documentElement).getPropertyValue(name).trim()||fallback; }catch{ return fallback; } };
+    const style = document.createElementNS('http://www.w3.org/2000/svg','style');
     style.textContent = `
-      .node-shape{fill:${cssVar('--node','#ffffff')};stroke:${cssVar('--node-stroke','#cbd5e1')};stroke-width:2}
-      .connector{stroke:#64748b;stroke-width:2.25}
-      text{fill:#111827;font:600 ${cssVar('--node-font-size','12px')}/1.2 ${cssVar('--node-font-family','system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif')}}
-      marker path{fill:#64748b}
+.node-shape{fill:${cssVar('--node','#ffffff')};stroke:${cssVar('--node-stroke','#cbd5e1')};stroke-width:2}
+.connector{stroke:#64748b;stroke-width:2.25}
+text{fill:#111827;font:600 ${cssVar('--node-font-size','12px')}/1.2 ${cssVar('--node-font-family','system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif')}}
+marker path{fill:#64748b}
     `;
     clone.insertBefore(style, clone.firstChild);
 
-    const svg=document.createElementNS('http://www.w3.org/2000/svg','svg');
-    svg.setAttribute('xmlns','http://www.w3.org/2000/svg');
-    svg.setAttribute('width', Math.floor(r.width));
-    svg.setAttribute('height', Math.floor(r.height));
-    svg.setAttribute('viewBox', `0 0 ${Math.floor(r.width)} ${Math.floor(r.height)}`);
-    if(!withGrid){ const bg=document.createElementNS('http://www.w3.org/2000/svg','rect'); bg.setAttribute('x','0'); bg.setAttribute('y','0'); bg.setAttribute('width','100%'); bg.setAttribute('height','100%'); bg.setAttribute('fill','#ffffff'); svg.appendChild(bg); }
-    svg.appendChild(clone);
+    if(!withGrid){
+      const bg=document.createElementNS('http://www.w3.org/2000/svg','rect');
+      bg.setAttribute('x','0'); bg.setAttribute('y','0'); bg.setAttribute('width','100%'); bg.setAttribute('height','100%');
+      bg.setAttribute('fill','#ffffff');
+      clone.insertBefore(bg, style.nextSibling);
+    }
 
-    const s=new XMLSerializer().serializeToString(svg);
-    const img=new Image();
-    const url=URL.createObjectURL(new Blob([s], {type:'image/svg+xml'}));
-    img.onload=()=>{
-      const w=Math.floor(r.width), h=Math.floor(r.height);
-      const c=document.createElement('canvas'); c.width=w; c.height=h; const ctx=c.getContext('2d');
-      ctx.drawImage(img,0,0);
-      if(withGrid){ const prev=ctx.globalCompositeOperation; ctx.globalCompositeOperation='destination-over'; drawGrid(ctx,w,h,state.grid); ctx.globalCompositeOperation=prev; }
+    const serializer = new XMLSerializer();
+    const svgString = serializer.serializeToString(clone);
+    const blob = new Blob([svgString], {type:'image/svg+xml'});
+    const url = URL.createObjectURL(blob);
+    const img = new Image();
+    img.onload = ()=>{
       URL.revokeObjectURL(url);
-      const png=c.toDataURL('image/png'); const a=document.createElement('a'); a.href=png;
-      const base = projectFileName(withGrid ? 'png' : 'png');
+      const exportCanvas = document.createElement('canvas');
+      exportCanvas.width = width;
+      exportCanvas.height = height;
+      const ctx = exportCanvas.getContext('2d');
+      if(!ctx){
+        showToast('Export fehlgeschlagen (Canvas)');
+        return;
+      }
+      ctx.drawImage(img, 0, 0, width, height);
+      const bgColor = cssVar('--bg','#ffffff');
+      if(withGrid){
+        const gridStep = Number(state.grid) || parseFloat(cssVar('--grid-step','20px')) || 20;
+        const gridColor = cssVar('--grid-color','#e5e7eb');
+        ctx.save();
+        ctx.globalCompositeOperation = 'destination-over';
+        drawGrid(ctx, width, height, gridStep, gridColor);
+        ctx.restore();
+        ctx.save();
+        ctx.globalCompositeOperation = 'destination-over';
+        ctx.fillStyle = bgColor || '#ffffff';
+        ctx.fillRect(0,0,width,height);
+        ctx.restore();
+      }else{
+        ctx.save();
+        ctx.globalCompositeOperation = 'destination-over';
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(0,0,width,height);
+        ctx.restore();
+      }
+      const png = exportCanvas.toDataURL('image/png');
+      const a = document.createElement('a');
+      a.href = png;
+      const base = projectFileName('png');
       a.download = withGrid ? base.replace(/\.png$/, '-grid.png') : base;
       a.click();
     };
-    img.src=url;
+    img.onerror = ()=>{
+      URL.revokeObjectURL(url);
+      showToast('Export fehlgeschlagen');
+    };
+    img.src = url;
   }
 
-  function drawGrid(ctx,w,h,step=20){ ctx.beginPath(); for(let x=step;x<w;x+=step){ ctx.moveTo(x,0); ctx.lineTo(x,h); } for(let y=step;y<h;y+=step){ ctx.moveTo(0,y); ctx.lineTo(w,y); } ctx.lineWidth=1; ctx.strokeStyle='#e5e7eb'; ctx.stroke(); }
+  function drawGrid(ctx,w,h,step=20,color='#e5e7eb'){
+    const size = Math.max(4, Number(step) || 20);
+    ctx.save();
+    ctx.beginPath();
+    for(let x=size;x<w;x+=size){
+      const lineX = Math.round(x) + 0.5;
+      ctx.moveTo(lineX,0);
+      ctx.lineTo(lineX,h);
+    }
+    for(let y=size;y<h;y+=size){
+      const lineY = Math.round(y) + 0.5;
+      ctx.moveTo(0,lineY);
+      ctx.lineTo(w,lineY);
+    }
+    ctx.lineWidth = 1;
+    ctx.strokeStyle = color || '#e5e7eb';
+    ctx.stroke();
+    ctx.restore();
+  }
 
   // Export dropdown wiring
   (function(){
     const exportDropdown=document.getElementById('exportDropdown');
     const btnExport=document.getElementById('btnExport');
     const menuExport=document.getElementById('menuExport');
+    if(!exportDropdown || !btnExport || !menuExport) return;
     function toggleExportMenu(show){ const willShow= typeof show==='boolean'? show : !menuExport.classList.contains('show'); menuExport.classList.toggle('show', willShow); menuExport.setAttribute('aria-hidden', willShow? 'false':'true'); }
     btnExport.addEventListener('click', (e)=>{ e.stopPropagation(); toggleExportMenu(); });
     document.addEventListener('click', (e)=>{ if(!exportDropdown.contains(e.target)) toggleExportMenu(false); });
