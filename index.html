@@ -63,6 +63,33 @@
     .btn-group > button:last-child,
     .btn-group > .file-btn-label:last-child,
     .btn-group > .dropdown:last-child > button{border-top-right-radius:10px; border-bottom-right-radius:10px}
+    .toolbar-link{
+      width:100%;
+      margin-top:10px;
+      border:1px solid rgba(255,255,255,.25);
+      background:rgba(255,255,255,.1);
+      color:#f8fafc;
+      border-radius:12px;
+      padding:10px;
+      font-weight:700;
+      cursor:pointer;
+      transition:.15s ease;
+      display:flex;
+      align-items:center;
+      justify-content:flex-start;
+      gap:12px;
+    }
+    .toolbar-link svg{width:36px; height:28px; flex:0 0 auto;}
+    .toolbar-link strong{color:#fff; display:block;}
+    .toolbar-link .toolbar-link-label{display:flex; flex-direction:column; align-items:flex-start; line-height:1.2;}
+    .toolbar-link .toolbar-link-hint{color:rgba(248,250,252,.85); font-size:12px; font-weight:600; margin-top:2px;}
+    .toolbar-link:hover{background:rgba(255,255,255,.18);}
+    .toolbar-link.active{
+      background:var(--accent-2);
+      color:#fff;
+      border-color:#0891b2;
+    }
+    .toolbar-link.active:hover{background:#0891b2}
     header .file-input{display:none}
 
     /* Export dropdown */
@@ -200,6 +227,17 @@
         <svg viewBox="0 0 100 60" aria-hidden="true"><polygon points="20,10 95,10 80,50 5,50" fill="#fff" stroke="#cbd5e1" stroke-width="4"/></svg>
         <div><strong>Ein-/Ausgabe</strong><div style="opacity:.8;font-size:12px">Parallelogramm</div></div>
       </div>
+      <button type="button" id="btnLinkMode" title="Verbindung (Taste C)" aria-pressed="false" class="toolbar-link">
+        <svg viewBox="0 0 36 36" aria-hidden="true" focusable="false">
+          <circle cx="8" cy="18" r="4" fill="currentColor"/>
+          <path d="M12 18h14" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M22 11l9 7-9 7" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        <div class="toolbar-link-label">
+          <strong>Pfeilverbindung</strong>
+          <div class="toolbar-link-hint">Taste&nbsp;C halten</div>
+        </div>
+      </button>
       <div class="shape" draggable="true" data-shape="connector" title="Verbinder">
         <svg viewBox="0 0 100 60" aria-hidden="true"><circle cx="50" cy="30" r="16" fill="#fff" stroke="#cbd5e1" stroke-width="4"/></svg>
         <div><strong>Verbinder</strong><div style="opacity:.8;font-size:12px">Kreis</div></div>
@@ -208,10 +246,10 @@
     <div class="palette" id="paletteActions">
       <h2>Aktionen</h2>
       <div style="font-size:13px; color:#e5e7eb; opacity:.9; line-height:1.5">
-        • <b>Doppelklick</b> Baustein → umbenennen<br>
-        • <b>Shift</b> + Klick zwei Formen → Pfeil verbinden<br>
-        • <b>Entf</b> → Baustein löschen<br>
-        • <b>Strg/⌘</b>+<b>D</b> → duplizieren
+        &bull; <b>Doppelklick</b> Baustein umbenennen<br>
+        &bull; <b>C</b> halten &rarr; Pfeilverbindung<br>
+        &bull; <b>Delete</b> Baustein l&ouml;schen<br>
+        &bull; <b>Ctrl</b>+<b>D</b> duplizieren
       </div>
     </div>
   </aside>
@@ -256,7 +294,7 @@
       <div class="row">
         <div>
           <div style="font-weight:600">Autosave</div>
-          <div style="font-size:12px; color:var(--muted)">Wie oft soll der aktuelle Stand automatisch gesichert werden?</div>
+          <div style="font-size:12px; color:var(--muted)">Wie oft soll der aktuelle Stand automatisch gespeichert werden?</div>
         </div>
         <select id="selectAutosave" style="padding:6px 8px; border-radius:10px; border:1px solid #d1d5db;">
           <option value="0">Aus</option>
@@ -299,7 +337,7 @@
           <span class="thumb"></span>
         </label>
       </div>
-      <div class="row">
+      <div class="row" style="display:none">
         <div>
           <div style="font-weight:600">Verbinder anzeigen</div>
           <div style="font-size:12px; color:var(--muted)">Für Einsteiger standardmäßig aus – später zuschalten</div>
@@ -311,7 +349,6 @@
         </label>
       </div>
       <div class="modal-tip">
-        <strong>Tipp:</strong> Doppelklick um Text zu &auml;ndern &middot; Shift&rarr; zwei Formen anklicken f&uuml;r Verbindung &middot; Entf zum L&ouml;schen
       </div>
     </div>
   </div>
@@ -354,6 +391,8 @@
     maxViewportHeight: 0,
     stageWidth: 0,
     stageHeight: 0,
+    linkModeKeyActive: false,
+    linkModeButtonActive: false,
     showArrows: true,
     fontSize: 12,
     sidebarCollapsed: false,
@@ -379,6 +418,7 @@
   const inputTitle = document.getElementById('projectTitle');
   const btnNew = document.getElementById('btnNew');
   const btnImport = document.getElementById('btnImport');
+  const btnLinkMode = document.getElementById('btnLinkMode');
   const ARROW_PADDING = 0;
   const aside = document.querySelector('aside');
   const connectorMenu = document.getElementById('connectorMenu');
@@ -409,6 +449,49 @@
   if(measureCtx){ measureCtx.font = `${FONT_WEIGHT} ${state.fontSize}px ${FONT_FAMILY}`; }
   const BASE_NODE_HEIGHT = 70;
   const NODE_HEIGHT_OPTIONS = [0.8, 1, 1.5, 2, 2.5, 3];
+
+  function isTypingTarget(target){
+    if(!target) return false;
+    if(target.closest) return !!target.closest('input, textarea, [contenteditable="true"]');
+    return false;
+  }
+
+  function isLinkModeActive(){
+    return !!(state.linkModeKeyActive || state.linkModeButtonActive);
+  }
+
+  function syncLinkModeState(){
+    const active = isLinkModeActive();
+    if(!active && state.pendingLinkFrom){
+      state.pendingLinkFrom = null;
+    }
+    if(btnLinkMode){
+      btnLinkMode.classList.toggle('active', active);
+      btnLinkMode.setAttribute('aria-pressed', state.linkModeButtonActive ? 'true' : 'false');
+      const title = active ? 'Verbinder-Modus aktiv (Taste C)' : 'Verbinder-Modus (Taste C)';
+      btnLinkMode.setAttribute('title', title);
+    }
+  }
+
+  function setLinkModeButtonActive(value, options={}){
+    const next = !!value;
+    if(state.linkModeButtonActive === next) return;
+    state.linkModeButtonActive = next;
+    if(!next){
+      state.pendingLinkFrom = null;
+    }
+    syncLinkModeState();
+    if(!options.silent){
+      showToast(next ? 'Verbinder-Modus aktiv' : 'Verbinder-Modus aus');
+    }
+  }
+
+  function setLinkModeKeyActive(value){
+    const next = !!value;
+    if(state.linkModeKeyActive === next) return;
+    state.linkModeKeyActive = next;
+    syncLinkModeState();
+  }
 
   // --- Autosave (per tab) ---
   function ensureTabId(){
@@ -1089,6 +1172,7 @@
   restartAutosaveTimer();
   restoreAutosaveIfAny();
   updateTitleInput();
+  syncLinkModeState();
 
   if(btnSettings) btnSettings.addEventListener('click', openSettings);
   if(closeBtn) closeBtn.addEventListener('click', closeSettings);
@@ -1102,6 +1186,7 @@
   if(btnFontIncrease) btnFontIncrease.addEventListener('click', ()=> adjustFontSize(FONT_SIZE_STEP));
   if(btnFontDecrease) btnFontDecrease.addEventListener('click', ()=> adjustFontSize(-FONT_SIZE_STEP));
   if(btnTogglePalette) btnTogglePalette.addEventListener('click', ()=> setSidebarCollapsed(!state.sidebarCollapsed));
+  if(btnLinkMode) btnLinkMode.addEventListener('click', ()=> setLinkModeButtonActive(!state.linkModeButtonActive));
   if(paletteBausteineHead) paletteBausteineHead.addEventListener('pointerdown', startPaletteDrag);
   window.addEventListener('keydown', (e)=>{ if(e.key==='Escape' && modal?.classList.contains('show')) closeSettings(); });
   if(connectorToggleArrow) connectorToggleArrow.addEventListener('click', ()=>{
@@ -1168,7 +1253,7 @@
     if(nodeMenuVisible && nodeMenu && !nodeMenu.contains(e.target)) closeNodeMenu();
   });
   window.addEventListener('resize', handleViewportChange);
-  window.addEventListener('blur', closeAllMenus);
+  window.addEventListener('blur', ()=>{ closeAllMenus(); setLinkModeKeyActive(false); });
   if(mainArea) mainArea.addEventListener('scroll', closeAllMenus);
 
   // Palette drag & drop
@@ -1325,22 +1410,50 @@
     else if(sel.type==='connector'){ const c = document.getElementById(sel.id); if(c) c.classList.add('selected'); }
   }
 
+
   function nodeClick(e){
     e.stopPropagation();
     closeAllMenus();
     const id = this.id;
-    if(e.shiftKey){
-      if(!state.pendingLinkFrom){ state.pendingLinkFrom = id; select({type:'node', id}); showToast('Quelle gewählt – Ziel anklicken'); }
-      else if(state.pendingLinkFrom && state.pendingLinkFrom!==id){ const conn = createConnector(state.pendingLinkFrom, id); renderConnector(conn); state.pendingLinkFrom=null; select({type:'connector', id:conn.id}); showToast('Verbunden ✓'); }
+    const manualLink = isLinkModeActive() || e.shiftKey;
+    if(manualLink){
+      if(!state.pendingLinkFrom){
+        state.pendingLinkFrom = id;
+        select({type:'node', id});
+        showToast('Quelle gewählt - Ziel anklicken');
+      }else if(state.pendingLinkFrom === id){
+        state.pendingLinkFrom = null;
+        if(state.linkModeButtonActive && !state.linkModeKeyActive){
+          setLinkModeButtonActive(false,{silent:true});
+        }
+      }else{
+        if(hasConnectorBetween(state.pendingLinkFrom, id)){
+          showToast('Verbindung bereits vorhanden');
+          select({type:'node', id});
+        }else{
+          const conn = createConnector(state.pendingLinkFrom, id);
+          renderConnector(conn);
+          select({type:'connector', id:conn.id});
+          showToast('Verbunden');
+        }
+        state.pendingLinkFrom = null;
+        if(state.linkModeButtonActive && !state.linkModeKeyActive){
+          setLinkModeButtonActive(false,{silent:true});
+        }
+      }
       return;
     }
     select({type:'node', id});
+    state.pendingLinkFrom = null;
   }
 
   canvas.addEventListener('click', (e)=>{
     if(e.target===canvas){
       select(null);
       state.pendingLinkFrom=null;
+      if(state.linkModeButtonActive && !state.linkModeKeyActive){
+        setLinkModeButtonActive(false,{silent:true});
+      }
     }
     closeAllMenus();
   });
@@ -1386,6 +1499,12 @@
     state.connectors.set(id, conn);
     markDirty();
     return conn;
+  }
+  function hasConnectorBetween(fromId, toId){
+    for(const conn of state.connectors.values()){
+      if(conn.fromId === fromId && conn.toId === toId) return true;
+    }
+    return false;
   }
   function connectorHasArrow(conn){
     return conn?.arrow !== false;
@@ -1555,6 +1674,12 @@
 
   // Keyboard
   window.addEventListener('keydown', (e)=>{
+    const key = typeof e.key === 'string' ? e.key.toLowerCase() : '';
+    if(!e.ctrlKey && !e.metaKey && !e.altKey && key === 'c'){
+      if(isTypingTarget(e.target)) return;
+      setLinkModeKeyActive(true);
+      return;
+    }
     if(e.key==='Escape'){
       if(connectorMenuVisible || nodeMenuVisible){
         closeAllMenus();
@@ -1564,11 +1689,15 @@
     if(e.key==='Delete' || e.key==='Backspace'){
       if(state.selection){ if(state.selection.type==='node') deleteNode(state.selection.id); if(state.selection.type==='connector') deleteConnector(state.selection.id); select(null); }
     }
-    if((e.ctrlKey||e.metaKey) && e.key.toLowerCase()==='d'){
+    if((e.ctrlKey||e.metaKey) && key==='d'){
       e.preventDefault(); e.stopPropagation();
       if(state.selection?.type==='node') duplicateNode(state.selection.id);
       else showToast('Tipp: Wähle zuerst eine Form – Strg/⌘+D dupliziert');
     }
+  });
+  window.addEventListener('keyup', (e)=>{
+    const key = typeof e.key === 'string' ? e.key.toLowerCase() : '';
+    if(key === 'c'){ setLinkModeKeyActive(false); }
   });
 
   function deleteNode(id){
