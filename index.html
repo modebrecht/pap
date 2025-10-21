@@ -2120,8 +2120,7 @@ marker path{fill:#64748b}
   // Toast helper
   function showToast(msg){ toast.textContent=msg; toast.classList.add('show'); clearTimeout(showToast.tid); showToast.tid=setTimeout(()=>toast.classList.remove('show'), 1400); }
 
-  // Demo content (skipped if autosave restored)
-  (function demo(){ if(state.restoredFromAutosave) return; const a=createNode('terminator',220,140); a.label='Start'; const b=createNode('process',420,140); b.label='Initialisiere'; const c=createNode('decision',620,140); c.label='Bedingung?'; const d=createNode('process',620,280); d.label='Alternative'; [a,b,c,d].forEach(renderNode); renderConnector(createConnector(a.id,b.id)); renderConnector(createConnector(b.id,c.id)); renderConnector(createConnector(c.id,d.id)); })();
+  // Initial canvas stays empty unless autosave restores data.
 
   // --- Self-tests (basic & extra) ---
   (function runSelfTests(){
