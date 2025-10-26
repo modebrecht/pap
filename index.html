@@ -1675,6 +1675,7 @@
   // Keyboard
   window.addEventListener('keydown', (e)=>{
     const key = typeof e.key === 'string' ? e.key.toLowerCase() : '';
+    if(isTypingTarget(e.target)) return;
     if(!e.ctrlKey && !e.metaKey && !e.altKey && key === 'c'){
       if(isTypingTarget(e.target)) return;
       setLinkModeKeyActive(true);

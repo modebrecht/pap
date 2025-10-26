@@ -1,3 +1,8 @@
-[x] #task1 Fix stale `state.pendingLinkFrom` when a source node gets deleted while link mode is active. Deleting the node should cancel link mode to avoid orphan connectors and misleading toasts.
-[] #task2 Clear the JSON import file input after processing so the same file can be re-imported consecutively.
-[] #task3 Revoke the object URL used during JSON export after triggering the download to prevent leaks.
+[x] #t1 Fix stale `state.pendingLinkFrom` when a source node gets deleted while link mode is active. Deleting the node should cancel link mode to avoid orphan connectors and misleading toasts.
+[x] #t2 Clear the JSON import file input after processing so the same file can be re-imported consecutively.
+[x] #t3 Revoke the object URL used during JSON export after triggering the download to prevent leaks.
+[x] #t4 Ensure global keyboard shortcuts ignore events originating from text inputs (apply `isTypingTarget` guard before handling Delete / Ctrl+D).
+[] #f1: CTRL+Z / undo
+---
+t=task
+f=feature
