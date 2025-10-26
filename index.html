@@ -1982,7 +1982,17 @@
   if(fileImport){
     fileImport.addEventListener('change', (e)=>{
       const file=e.target.files?.[0]; if(!file) return; const reader=new FileReader();
-      reader.onload=()=>{ try{ const data=JSON.parse(reader.result); loadFromData(data); showToast('Projekt geladen'); }catch(err){ alert('Fehler beim Laden: '+err.message); } };
+      reader.onload=()=>{
+        try{
+          const data=JSON.parse(reader.result);
+          loadFromData(data);
+          showToast('Projekt geladen');
+        }catch(err){
+          alert('Fehler beim Laden: '+err.message);
+        }finally{
+          e.target.value='';
+        }
+      };
       reader.readAsText(file);
     });
   }
