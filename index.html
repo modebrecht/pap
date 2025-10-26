@@ -1705,6 +1705,7 @@
     state.nodes.delete(id);
     const el=document.getElementById(id); if(el) el.remove();
     if(state.contextNodeId === id) closeNodeMenu();
+    if(state.pendingLinkFrom === id) state.pendingLinkFrom = null;
     markDirty();
     requestStageSizeUpdate();
   }
