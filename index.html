@@ -2003,10 +2003,12 @@
   function exportJSON(){
     if(!ensureTitleFilled()) return;
     const blob=new Blob([serializeProject()], {type:'application/json'});
+    const url=URL.createObjectURL(blob);
     const a=document.createElement('a');
-    a.href=URL.createObjectURL(blob);
+    a.href=url;
     a.download=projectFileName('json');
     a.click();
+    setTimeout(()=>URL.revokeObjectURL(url), 0);
   }
 
   function exportPNG(withGrid=false){
