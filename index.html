@@ -186,6 +186,7 @@
     <div class="btn-group" id="groupImportExport">
       <button type="button" id="btnNew" title="Neues Projekt starten"><span class="emoji">🆕</span> Neu</button>
       <button type="button" id="btnImport" class="file-btn-label" title="Projekt aus JSON laden"><span class="emoji">📥</span> Import</button>
+      <button type="button" id="btnRestorePrevious" title="Letztes Projekt wiederherstellen" style="display:none"><span class="emoji">🕒</span> Wiederherstellen</button>
       <div class="dropdown" id="exportDropdown">
         <button id="btnExport" title="Export"><span class="emoji">📤</span> Export</button>
         <div class="menu" id="menuExport" role="menu" aria-hidden="true">
@@ -403,7 +404,8 @@
     dirty: false,
     tabId: null,
     restoredFromAutosave: false,
-    autosaveMs: 60000
+    autosaveMs: 60000,
+    hasPreviousSnapshot: false
   };
 
   const $ = (sel,root=document)=>root.querySelector(sel);
@@ -436,6 +438,7 @@
   const floatingPalette = document.getElementById('floatingPalette');
   const paletteBausteineHead = document.getElementById('paletteBausteineHead');
   const btnTogglePalette = document.getElementById('btnTogglePalette');
+  const btnRestorePrevious = document.getElementById('btnRestorePrevious');
   let nodeMenuVisible = false;
   let paletteDrag = null;
   const FONT_WEIGHT = 600;
@@ -504,15 +507,61 @@
   state.tabId = ensureTabId();
   const autosaveKey = ()=>`pap.autosave.${state.tabId}`;
   const autosaveFallbackKey = 'pap.autosave.latest';
+  const autosavePreviousKey = 'pap.autosave.previous';
   let autosaveTimerId = null;
   const markDirty = ()=>{ state.dirty = true; };
-  function saveAutosave(force=false){
+  function parseSnapshot(raw){
+    if(!raw) return null;
+    try{
+      return JSON.parse(raw);
+    }catch{
+      return null;
+    }
+  }
+  function snapshotHasContent(data){
+    if(!isValidSnapshot(data)) return false;
+    if(Array.isArray(data.nodes) && data.nodes.length > 0) return true;
+    if(Array.isArray(data.connectors) && data.connectors.length > 0) return true;
+    if(typeof data?.meta?.title === 'string' && data.meta.title.trim().length > 0) return true;
+    return false;
+  }
+  function saveAutosave(force=false, options={}){
+    const opts = (typeof options === 'object' && options) ? options : {};
+    const skipFallback = !!opts.skipFallback;
+    const skipPrevious = !!opts.skipPrevious;
+    const skipRefresh = !!opts.skipRefresh;
     if(!force && !state.dirty) return;
     try{
       const json = serializeProject();
+      if(!skipPrevious){
+        let candidateRaw = null;
+        let candidateSnapshot = null;
+        try{
+          candidateRaw = localStorage.getItem(autosaveKey());
+          candidateSnapshot = parseSnapshot(candidateRaw);
+          if(!skipFallback && !snapshotHasContent(candidateSnapshot)){
+            const fallbackRaw = localStorage.getItem(autosaveFallbackKey);
+            const fallbackSnapshot = parseSnapshot(fallbackRaw);
+            if(snapshotHasContent(fallbackSnapshot)){
+              candidateRaw = fallbackRaw;
+              candidateSnapshot = fallbackSnapshot;
+            }
+          }
+        }catch{}
+        if(candidateRaw && candidateRaw !== json && snapshotHasContent(candidateSnapshot)){
+          try{
+            localStorage.setItem(autosavePreviousKey, candidateRaw);
+          }catch{}
+        }
+      }
       localStorage.setItem(autosaveKey(), json);
-      localStorage.setItem(autosaveFallbackKey, json);
+      if(!skipFallback){
+        localStorage.setItem(autosaveFallbackKey, json);
+      }
       state.dirty = false;
+      if(!skipRefresh){
+        refreshPreviousSnapshotState();
+      }
     }catch(err){
       console.warn('Autosave konnte nicht gespeichert werden', err);
     }
@@ -569,7 +618,7 @@
   }
   window.addEventListener('load', resizeCanvas);
 
-  // Einstellungen (Modal) & Verbinder-Präferenz
+  // Einstellungen (Modal) & Verbinder-PrÃ¤ferenz
   function loadSettings(){
     try{
       const raw = localStorage.getItem('pap.settings');
@@ -656,6 +705,20 @@
   }
   function updateArrowsUI(){
     if(toggleArrows) toggleArrows.checked = !!state.showArrows;
+  }
+  function updateRestorePreviousUI(){
+    if(!btnRestorePrevious) return;
+    const has = !!state.hasPreviousSnapshot;
+    btnRestorePrevious.style.display = has ? '' : 'none';
+    btnRestorePrevious.disabled = !has;
+  }
+  function refreshPreviousSnapshotState(){
+    try{
+      state.hasPreviousSnapshot = !!localStorage.getItem(autosavePreviousKey);
+    }catch{
+      state.hasPreviousSnapshot = false;
+    }
+    updateRestorePreviousUI();
   }
   function applyGridToCanvas(){
     document.documentElement.style.setProperty('--grid-step', `${state.grid}px`);
@@ -1171,6 +1234,7 @@
   applyPalettePosition();
   restartAutosaveTimer();
   restoreAutosaveIfAny();
+  refreshPreviousSnapshotState();
   updateTitleInput();
   syncLinkModeState();
 
@@ -1186,6 +1250,7 @@
   if(btnFontIncrease) btnFontIncrease.addEventListener('click', ()=> adjustFontSize(FONT_SIZE_STEP));
   if(btnFontDecrease) btnFontDecrease.addEventListener('click', ()=> adjustFontSize(-FONT_SIZE_STEP));
   if(btnTogglePalette) btnTogglePalette.addEventListener('click', ()=> setSidebarCollapsed(!state.sidebarCollapsed));
+  if(btnRestorePrevious) btnRestorePrevious.addEventListener('click', restorePreviousProject);
   if(btnLinkMode) btnLinkMode.addEventListener('click', ()=> setLinkModeButtonActive(!state.linkModeButtonActive));
   if(paletteBausteineHead) paletteBausteineHead.addEventListener('pointerdown', startPaletteDrag);
   window.addEventListener('keydown', (e)=>{ if(e.key==='Escape' && modal?.classList.contains('show')) closeSettings(); });
@@ -1927,13 +1992,54 @@
     applyPalettePosition();
     requestStageSizeUpdate();
     select(null);
+    let lastSnapshot = null;
+    try{
+      lastSnapshot = localStorage.getItem(autosaveKey());
+      if(!lastSnapshot){
+        lastSnapshot = localStorage.getItem(autosaveFallbackKey);
+      }
+    }catch{}
+    if(lastSnapshot){
+      try{ localStorage.setItem(autosavePreviousKey, lastSnapshot); }catch{}
+    }
     try{
       localStorage.removeItem(autosaveKey());
-      localStorage.removeItem(autosaveFallbackKey);
     }catch{}
-    saveAutosave(true);
+    saveAutosave(true, {skipFallback:true, skipPrevious:true, skipRefresh:true});
+    refreshPreviousSnapshotState();
     state.dirty = false;
     showToast('Neues Projekt gestartet');
+  }
+
+  function restorePreviousProject(){
+    let raw = null;
+    try{
+      raw = localStorage.getItem(autosavePreviousKey);
+    }catch(err){
+      console.warn('Vorheriges Projekt konnte nicht geladen werden', err);
+    }
+    if(!raw){
+      showToast('Kein vorheriges Projekt gefunden');
+      return;
+    }
+    try{
+      const data = JSON.parse(raw);
+      loadFromData(data);
+      try{
+        localStorage.setItem(autosaveKey(), raw);
+        localStorage.setItem(autosaveFallbackKey, raw);
+      }catch(err){
+        console.warn('Autosave konnte nicht aktualisiert werden', err);
+      }
+      state.hasPreviousSnapshot = true;
+      updateRestorePreviousUI();
+      saveAutosave(true, {skipRefresh:true});
+      refreshPreviousSnapshotState();
+      showToast('Letztes Projekt wiederhergestellt');
+    }catch(err){
+      console.error('Restore failed', err);
+      alert('Wiederherstellung fehlgeschlagen: ' + err.message);
+    }
   }
 
   function sanitizeNode(raw){

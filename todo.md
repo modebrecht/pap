@@ -2,6 +2,7 @@
 [x] #t2 Clear the JSON import file input after processing so the same file can be re-imported consecutively.
 [x] #t3 Revoke the object URL used during JSON export after triggering the download to prevent leaks.
 [x] #t4 Ensure global keyboard shortcuts ignore events originating from text inputs (apply `isTypingTarget` guard before handling Delete / Ctrl+D).
+[] #t5 Keep fallback autosave safe when starting a new project (preserve `pap.autosave.fallback` or move current snapshot to `pap.autosave.previous` before clearing the tab key).
 [] #f1: CTRL+Z / undo
 ---
 t=task
