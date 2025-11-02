@@ -241,10 +241,10 @@
             <label for="playbackSpeed">Geschwindigkeit</label>
             <div class="playback-speed-value"><span id="playbackSpeedValue">1.0x</span></div>
           </div>
-          <input id="playbackSpeed" type="range" min="0.5" max="2.5" step="0.1" value="1" />
+          <input id="playbackSpeed" type="range" min="0.1" max="2.5" step="0.1" value="1" />
         </div>
         <div class="menu-actions">
-          <button type="button" id="playbackPlay">▶︎ Start</button>
+          <button type="button" id="playbackPlay">▶︎ Play/Continue</button>
           <button type="button" id="playbackStop">⏹︎ Stop</button>
           <button type="button" id="playbackRestart">↺ Restart</button>
         </div>
@@ -486,6 +486,7 @@
   const playbackSpeedValue = document.getElementById('playbackSpeedValue');
   const playbackPlayBtn = document.getElementById('playbackPlay');
   const playbackStopBtn = document.getElementById('playbackStop');
+  const playbackRestartBtn = document.getElementById('playbackRestart');
   const stageWrap = document.getElementById('stage-wrap');
   const mainArea = document.querySelector('main');
   const fileImport = document.getElementById('fileImportJSON');
@@ -496,7 +497,7 @@
   const ARROW_PADDING = 0;
 
   const CONNECTOR_LABEL_OFFSET = 14;
-  const PLAYBACK_SPEED_PX_PER_SEC = 60;
+  const PLAYBACK_SPEED_PX_PER_SEC = 30;
   const MIN_PLAYBACK_DURATION_MS = 280;
   const MAX_PLAYBACK_STEPS_MULTIPLIER = 6;
   const YES_LABELS = ['y','yes','ja'];
@@ -1399,7 +1400,8 @@
     log: [],
     speedMultiplier: 1,
     currentAnimation: null,
-    pauseWaiters: []
+    pauseWaiters: [],
+    pendingRestart: false
   };
 
   function getProjectTitle(){
@@ -1456,14 +1458,42 @@
 
   function updatePlaybackButton(){
     if(!btnPlayback) return;
-    let icon = '▶️';
+    let icon = '▶︎';
     let label = 'Playback';
     if(playbackState.running){
-      icon = playbackState.paused ? '⏸️' : '⏹️';
-      label = playbackState.paused ? 'Pause' : 'Stop';
+      if(playbackState.paused){
+        icon = '▶︎';
+        label = 'Continue';
+      }else{
+        icon = '⏸︎';
+        label = 'Pause';
+      }
     }
     btnPlayback.innerHTML = `<span class="emoji">${icon}</span> ${label}`;
     btnPlayback.setAttribute('aria-pressed', playbackState.running ? 'true' : 'false');
+    updatePlaybackControls();
+  }
+
+  function updatePlaybackControls(){
+    const hasLog = Array.isArray(playbackState.log) && playbackState.log.length > 0;
+    if(playbackPlayBtn){
+      let text = '▶︎ Play';
+      if(playbackState.running){
+        text = playbackState.paused ? '▶︎ Continue' : '⏸︎ Pause';
+      }else if(playbackState.paused){
+        text = '▶︎ Continue';
+      }
+      playbackPlayBtn.textContent = text;
+    }
+    if(playbackStopBtn){
+      playbackStopBtn.textContent = '⏹︎ Stop';
+      playbackStopBtn.disabled = !playbackState.running;
+    }
+    if(playbackRestartBtn){
+      playbackRestartBtn.textContent = '⟳ Restart';
+      const canRestart = playbackState.running || hasLog;
+      playbackRestartBtn.disabled = !canRestart;
+    }
   }
 
   function resetPlaybackVisuals(){
@@ -1572,6 +1602,9 @@
       playbackSpeedSlider.value = String(playbackSliderValue);
       updatePlaybackSpeedValue();
     }
+    if(shouldShow){
+      updatePlaybackControls();
+    }
   }
 
   function updatePlaybackSpeedValue(){
@@ -1629,6 +1662,21 @@
     updatePlaybackButton();
   }
 
+  function restartPlayback(){
+    hidePlaybackToast();
+    if(playbackState.running){
+      playbackState.pendingRestart = true;
+      stopPlayback();
+      return;
+    }
+    playbackState.pendingRestart = false;
+    playbackState.paused = false;
+    playbackState.stopRequested = false;
+    resetPlaybackVisuals();
+    playbackState.log = [];
+    startPlaybackFlow();
+  }
+
   function ensurePlaybackOrb(){
     if(playbackState.orb && playbackState.orb.ownerSVGElement){
       return playbackState.orb;
@@ -1679,6 +1727,7 @@
     const startId = getStartNodeId();
     if(!startId){
       showToast('Kein Startknoten gefunden');
+      updatePlaybackControls();
       return;
     }
     const startNode = state.nodes.get(startId);
@@ -1709,9 +1758,12 @@
     try{
       await runPlaybackFrom(startId);
       const aborted = playbackState.stopRequested;
+      const restarting = playbackState.pendingRestart === true;
       finishPlayback({aborted});
       if(aborted){
-        showToast('Playback abgebrochen');
+        if(!restarting){
+          showToast('Playback abgebrochen');
+        }
       }else{
         showPlaybackPathToast(playbackState.log);
       }
@@ -1908,6 +1960,8 @@
   }
 
   function finishPlayback({aborted=false} = {}){
+    const shouldRestart = playbackState.pendingRestart === true;
+    playbackState.pendingRestart = false;
     playbackState.running = false;
     playbackState.paused = false;
     playbackState.stopRequested = false;
@@ -1922,6 +1976,13 @@
       resetPlaybackVisuals();
     }
     updatePlaybackButton();
+    if(shouldRestart){
+      hidePlaybackToast();
+      resetPlaybackVisuals();
+      playbackState.log = [];
+      playbackState.stopRequested = false;
+      startPlaybackFlow();
+    }
   }
 
   updatePlaybackButton();
@@ -1940,6 +2001,9 @@
   if(playbackSpeedSlider){
     setPlaybackSpeedMultiplier(playbackSpeedSlider.value || playbackState.speedMultiplier);
     const initSliderValue = Number(playbackState.speedMultiplier.toFixed(2));
+    if(initSliderValue < 0.1){
+      playbackState.speedMultiplier = 0.1;
+    }
     playbackSpeedSlider.value = String(initSliderValue);
     playbackSpeedSlider.addEventListener('input', ()=>{
       setPlaybackSpeedMultiplier(playbackSpeedSlider.value);
@@ -1955,7 +2019,7 @@
       }else if(playbackState.paused){
         resumePlayback();
       }else{
-        showToast('Playback laeuft bereits');
+        pausePlayback();
       }
     });
   }
@@ -1966,7 +2030,18 @@
         showToast('Playback nicht aktiv');
         return;
       }
+      playbackState.pendingRestart = false;
       stopPlayback();
+    });
+  }
+  if(playbackRestartBtn){
+    playbackRestartBtn.addEventListener('click', (e)=>{
+      e.preventDefault();
+      if(!playbackState.running && (!Array.isArray(playbackState.log) || playbackState.log.length === 0)){
+        showToast('Playback noch nicht gestartet');
+        return;
+      }
+      restartPlayback();
     });
   }
   if(playbackToast){
