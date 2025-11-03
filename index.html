@@ -3377,7 +3377,7 @@ marker path{fill:#64748b}
   // Initial canvas stays empty unless autosave restores data.
 
   // --- Self-tests (basic & extra) ---
-  (function runSelfTests(){
+  function runSelfTests(){
     try{
       const before = state.idCounter;
       const n = createNode('process', 100, 100); renderNode(n);
@@ -3401,7 +3401,11 @@ marker path{fill:#64748b}
       state.idCounter = before; select(null); state.dirty = false;
       console.log('%cSelf-tests passed','color:green');
     }catch(err){ console.error('Self-tests failed:', err); }
-  })();
+  }
+
+  if (location.hostname === 'localhost') {
+    runSelfTests();
+  }
 </script>
 </body>
 </html>
