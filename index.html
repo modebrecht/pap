@@ -1889,6 +1889,16 @@
       if(!choice){
         break;
       }
+      if(currentNode && String(currentNode.type || '').toLowerCase() === 'decision'){
+        const branchLabel = typeof choice.label === 'string' ? choice.label.trim() : '';
+        if(branchLabel){
+          const logIndex = playbackState.log.length - 1;
+          if(logIndex >= 0){
+            const decisionLabel = getNodeLabel(currentNode.id) || currentNode.id;
+            playbackState.log[logIndex] = `${decisionLabel} \u27A1 ${branchLabel}`;
+          }
+        }
+      }
       if(playbackState.paused) await waitWhilePaused();
       if(playbackState.stopRequested) break;
       markConnectorVisited(choice.id);
