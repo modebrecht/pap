@@ -22,6 +22,7 @@
       --grid-color:#e5e7eb;
       --node-font-size:12px;
       --node-font-family:system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;
+      --control-height:38px;
     }
     *{box-sizing:border-box}
     html,body{height:100%}
@@ -35,7 +36,7 @@
     header h1{font-size:16px; margin:0; font-weight:700; display:flex; align-items:center; gap:6px}
     header .spacer{flex:1}
     header button, header .file-btn-label{
-      border:1px solid #d1d5db; background:#fff; padding:8px 12px; border-radius:10px; cursor:pointer; transition:.15s ease; font-weight:600; display:flex; align-items:center; justify-content:center; line-height:1
+      border:1px solid #d1d5db; background:#fff; padding:0 12px; border-radius:10px; cursor:pointer; transition:.15s ease; font-weight:600; display:flex; align-items:center; justify-content:center; line-height:1; min-height:var(--control-height)
     }
     header button:hover, header .file-btn-label:hover{background:#f3f4f6}
     header button:disabled{opacity:.5; cursor:not-allowed}
@@ -50,10 +51,10 @@
     .btn-group{display:flex; align-items:stretch; gap:0}
     .btn-group > *{margin:0; display:flex; align-items:center; justify-content:center}
     .btn-group > .dropdown{display:flex; align-items:stretch}
-    .btn-group > .dropdown > button{height:100%}
+    .btn-group > .dropdown > button{min-height:var(--control-height)}
     .btn-group > button,
     .btn-group > .file-btn-label,
-    .btn-group > .dropdown > button{border-radius:0; font-weight:inherit; font-size:inherit; text-transform:none}
+    .btn-group > .dropdown > button{border-radius:0; font-weight:inherit; font-size:inherit; text-transform:none; min-height:var(--control-height)}
     .btn-group > button:not(:first-child),
     .btn-group > .file-btn-label:not(:first-child),
     .btn-group > .dropdown:not(:first-child) > button{margin-left:-1px}
@@ -105,10 +106,11 @@
     .dropdown .menu button{display:block; width:100%; padding:10px 12px; text-align:left; border:0; background:#fff; cursor:pointer; font-weight:600}
     .dropdown .menu button:hover{background:#f3f4f6}
     #playbackDropdown{position:relative; display:inline-flex; align-items:center;}
-    #playbackDropdown > button{display:flex; align-items:center; justify-content:center; padding:8px 12px; border-radius:10px;}
+    #playbackDropdown > button{display:flex; align-items:center; justify-content:center; padding:0 12px; border-radius:10px; min-height:var(--control-height);}
     #playbackDropdown > button .emoji{font-size:1.15em;}
     #playbackDropdown.open > button{background:var(--accent-2); color:#fff; border-color:#0891b2; border-bottom-left-radius:0; border-bottom-right-radius:0;}
-    #playbackDropdown .menu{min-width:130px; padding:6px; display:flex; flex-direction:column; gap:4px; position:absolute; top:100%; left:50%; transform:translate(-50%, 10px); border-radius:14px; background:#fff; box-shadow:0 6px 18px rgba(15,23,42,.18); z-index:10;}
+    #playbackDropdown .menu{min-width:130px; padding:6px; display:flex; flex-direction:column; gap:4px; position:absolute; top:100%; left:50%; transform:translate(-50%, 10px); border-radius:14px; background:#fff; border:1px solid #e5e7eb; box-shadow:0 6px 18px rgba(15,23,42,.18); z-index:10;}
+    #playbackDropdown .menu::before{content:""; position:absolute; width:18px; height:18px; top:-10px; left:50%; transform:translateX(-50%) rotate(45deg); background:#fff; border-left:1px solid #e5e7eb; border-top:1px solid #e5e7eb; box-shadow:-1px -1px 2px rgba(15,23,42,.05); pointer-events:none;}
     #playbackDropdown .menu[aria-hidden="true"]{display:none}
     #playbackDropdown .menu-section{display:flex; flex-direction:column; gap:3px}
     #playbackDropdown .playback-speed-header{display:flex; align-items:center; justify-content:space-between; gap:4px}
@@ -1628,9 +1630,11 @@
       const numbered = lines.map((entry, idx)=>`${idx + 1}. ${entry}`);
       await navigator.clipboard.writeText(numbered.join('\n'));
       showToast('Pfad kopiert');
+      hidePlaybackToast();
     }catch(err){
       console.error('Copy playback path failed', err);
       showToast('Kopieren nicht möglich');
+      hidePlaybackToast();
     }
   }
 
@@ -1653,6 +1657,7 @@
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
     showToast('Pfad als TXT exportiert');
+    hidePlaybackToast();
   }
 
   function togglePlaybackMenu(force){
@@ -2166,11 +2171,12 @@
   }
   if(playbackToast){
     playbackToast.addEventListener('click', (e)=>{
+      e.stopPropagation();
       const actionBtn = e.target.closest('button[data-action]');
       if(!actionBtn) return;
       const action = actionBtn.dataset.action;
       if(action === 'close'){
-        hidePlaybackToast(false);
+        hidePlaybackToast();
       }else if(action === 'copy'){
         copyPlaybackPathToClipboard();
       }else if(action === 'export-txt'){
