@@ -36,11 +36,26 @@
     header h1{font-size:16px; margin:0; font-weight:700; display:flex; align-items:center; gap:6px}
     header .spacer{flex:1}
     header button, header .file-btn-label{
-      border:1px solid #d1d5db; background:#fff; padding:0 12px; border-radius:10px; cursor:pointer; transition:.15s ease; font-weight:600; display:flex; align-items:center; justify-content:center; line-height:1; min-height:var(--control-height)
+      border:1px solid #d7dce4; background:linear-gradient(180deg,#ffffff 0%,#f3f6fb 100%); padding:0 16px; border-radius:12px; cursor:pointer; transition:background .18s ease, transform .18s ease; font-weight:600; display:flex; align-items:center; justify-content:center; gap:8px; line-height:1; min-height:var(--control-height);
     }
-    header button:hover, header .file-btn-label:hover{background:#f3f4f6}
+    header button .emoji, header .file-btn-label .emoji{font-size:1.1em; line-height:0}
+    header button:hover, header .file-btn-label:hover{background:linear-gradient(180deg,#f9fbfe 0%,#eef2f8 100%)}
+    header button:focus-visible, header .file-btn-label:focus-visible{outline:none; box-shadow:0 0 0 3px rgba(14,165,233,.28)}
+    header button:active, header .file-btn-label:active{transform:translateY(1px)}
     header button:disabled{opacity:.5; cursor:not-allowed}
     header button:disabled:hover{background:#fff}
+    header .btn-group{
+      display:inline-flex; align-items:stretch; border-radius:14px; overflow:hidden; border:1px solid #d7dce4; background:#fff;
+    }
+    header .btn-group > button,
+    header .btn-group > .file-btn-label,
+    header .btn-group > .dropdown > button{border:none; border-radius:0; box-shadow:none; padding:0 20px; background:transparent; transition:background .18s ease, color .18s ease;}
+    header .btn-group > button:not(:first-child),
+    header .btn-group > .file-btn-label:not(:first-child),
+    header .btn-group > .dropdown:not(:first-child) > button{margin-left:0; border-left:1px solid #e5e7eb;}
+    header .btn-group > button:hover,
+    header .btn-group > .file-btn-label:hover,
+    header .btn-group > .dropdown > button:hover{background:linear-gradient(180deg,#f4f8ff 0%,#e9f0fb 100%);}
     header .project-title{
       flex:0 0 260px; max-width:320px; padding:8px 12px; border:1px solid #d1d5db; border-radius:10px; font:inherit; font-weight:600; background:#fff; transition:border-color .15s ease, box-shadow .15s ease;
     }
@@ -106,21 +121,37 @@
     .dropdown .menu button{display:block; width:100%; padding:10px 12px; text-align:left; border:0; background:#fff; cursor:pointer; font-weight:600}
     .dropdown .menu button:hover{background:#f3f4f6}
     #playbackDropdown{position:relative; display:inline-flex; align-items:center;}
-    #playbackDropdown > button{position:relative; z-index:2; display:flex; align-items:center; justify-content:center; padding:0 12px; border-radius:10px; min-height:var(--control-height);}
-    #playbackDropdown > button .emoji{font-size:1.15em;}
-    #playbackDropdown.open > button{background:var(--accent-2); color:#fff; border-color:#0891b2; border-bottom-left-radius:0; border-bottom-right-radius:0; border-bottom-color:#0891b2; z-index:3;}
-    #playbackDropdown .menu{min-width:130px; padding:6px; display:flex; flex-direction:column; gap:4px; position:absolute; top:100%; margin-top:-1px; left:50%; transform:translateX(-50%); border-radius:0 0 14px 14px; background:#fff; border:1px solid #e5e7eb; box-shadow:0 6px 18px rgba(15,23,42,.18); z-index:2; transition:border-color .18s ease, box-shadow .18s ease;}
-    #playbackDropdown.open .menu{border-color:#0891b2; border-top:none; box-shadow:0 12px 24px rgba(8,145,178,.18);}
+    #playbackDropdown > button{position:relative; z-index:2; display:flex; align-items:center; justify-content:center; padding:0 44px 0 20px; border-radius:14px; min-height:var(--control-height); border:1px solid #0ea5e9; background:linear-gradient(135deg,#38bdf8 0%,#0ea5e9 100%); color:#fff; transition:transform .2s ease;}
+    #playbackDropdown > button:hover{transform:translateY(-1px);}
+    #playbackDropdown > button .emoji{font-size:1.28em;}
+    #playbackDropdown > button::after{content:""; position:absolute; right:18px; top:50%; width:8px; height:8px; border-right:2px solid currentColor; border-bottom:2px solid currentColor; transform:translateY(-50%) rotate(45deg); border-radius:1px; transition:transform .2s ease;}
+    #playbackDropdown.open > button{background:linear-gradient(135deg,#0ea5e9 0%,#0284c7 100%); border-color:#0284c7; border-bottom-left-radius:0; border-bottom-right-radius:0; transform:translateY(-1px);}
+    #playbackDropdown.open > button::after{transform:translateY(-50%) rotate(-135deg);}
+    #playbackDropdown .menu{min-width:210px; padding:16px; display:flex; flex-direction:column; gap:14px; position:absolute; top:100%; margin-top:-1px; left:50%; transform:translateX(-50%); border-radius:0 0 18px 18px; background:linear-gradient(180deg,#ffffff 0%,#f5f7fb 100%); border:1px solid #d0d8e6; z-index:2; overflow:hidden;}
+    #playbackDropdown .menu::before{content:""; position:absolute; inset:0; background:linear-gradient(135deg,rgba(14,165,233,.18) 0%,rgba(14,165,233,.04) 55%,rgba(14,165,233,0) 100%); opacity:.35; pointer-events:none;}
+    #playbackDropdown .menu > *{position:relative; z-index:1;}
+    #playbackDropdown.open .menu{border-color:#38bdf8;}
     #playbackDropdown .menu[aria-hidden="true"]{display:none}
-    #playbackDropdown .menu-section{display:flex; flex-direction:column; gap:3px}
-    #playbackDropdown .playback-speed-header{display:flex; align-items:center; justify-content:space-between; gap:4px}
-    #playbackDropdown .playback-speed-header label{font-size:11px; font-weight:600; color:var(--muted)}
-    #playbackDropdown input[type="range"]{width:100%; margin:0; height:14px;}
-    #playbackDropdown .playback-speed-value{font-size:10px; font-weight:600; color:var(--ink); text-align:right}
-    #playbackDropdown .menu-actions{display:flex; gap:4px; justify-content:space-between}
-    #playbackDropdown .menu-actions button{flex:1 0 auto; width:36px; height:36px; padding:0; border-radius:50%; border:1px solid #d1d5db; background:#fff; cursor:pointer; font-weight:600; display:flex; align-items:center; justify-content:center; transition:.15s ease} 
-    #playbackDropdown .menu-actions button .emoji{font-size:1.05em;}
-    #playbackDropdown .menu-actions button:hover{background:#f3f4f6}
+    #playbackDropdown .menu-section{display:flex; flex-direction:column; gap:8px; padding:12px; border-radius:14px; background:rgba(226,243,255,.7);}
+    #playbackDropdown .playback-speed-header{display:flex; align-items:center; justify-content:space-between; gap:4px; font-size:12px;}
+    #playbackDropdown .playback-speed-header label{font-size:11px; font-weight:700; letter-spacing:.02em; text-transform:uppercase; color:#0f172a;}
+    #playbackDropdown .playback-speed-value{font-size:11px; font-weight:700; color:#0284c7; text-align:right}
+    #playbackDropdown input[type="range"]{appearance:none; width:100%; margin:0; height:6px; border-radius:999px; background:transparent; cursor:pointer;}
+    #playbackDropdown input[type="range"]::-webkit-slider-runnable-track{height:6px; border-radius:999px; background:linear-gradient(90deg,rgba(14,165,233,.6),rgba(56,189,248,.25));}
+    #playbackDropdown input[type="range"]::-webkit-slider-thumb{appearance:none; width:18px; height:18px; border-radius:50%; background:#0ea5e9; border:3px solid #fff; margin-top:-6px; transition:transform .18s ease;}
+    #playbackDropdown input[type="range"]::-webkit-slider-thumb:hover{transform:scale(1.05);}
+    #playbackDropdown input[type="range"]::-moz-range-track{height:6px; border-radius:999px; background:linear-gradient(90deg,rgba(14,165,233,.6),rgba(56,189,248,.25));}
+    #playbackDropdown input[type="range"]::-moz-range-progress{height:6px; border-radius:999px; background:rgba(14,165,233,.6);}
+    #playbackDropdown input[type="range"]::-moz-range-thumb{width:18px; height:18px; border:none; border-radius:50%; background:#0ea5e9; transition:transform .18s ease;}
+    #playbackDropdown input[type="range"]::-moz-range-thumb:hover{transform:scale(1.05);}
+    #playbackDropdown .menu-actions{display:flex; gap:10px; justify-content:space-between;}
+    #playbackDropdown .menu-actions button{flex:1 0 auto; width:auto; height:44px; padding:0; border-radius:14px; border:1px solid #d0d8e6; background:linear-gradient(180deg,#ffffff 0%,#f5f7fb 100%); cursor:pointer; font-weight:700; display:flex; align-items:center; justify-content:center; transition:transform .18s ease;}
+    #playbackDropdown .menu-actions button .emoji{font-size:1.2em;}
+    #playbackDropdown .menu-actions button:hover{transform:translateY(-1px);}
+    #playbackDropdown .menu-actions button:focus-visible{outline:none; box-shadow:0 0 0 3px rgba(56,189,248,.35); transform:translateY(-1px);}
+    #playbackPlay{background:linear-gradient(135deg,#34d399 0%,#10b981 100%); border-color:#0f9d77; color:#fff;}
+    #playbackStop{background:linear-gradient(135deg,#fee2e2 0%,#fecaca 100%); border-color:#f87171; color:#b91c1c;}
+    #playbackRestart{background:linear-gradient(135deg,#fef9c3 0%,#fde68a 100%); border-color:#facc15; color:#b45309;}
 
     aside{grid-area:sidebar; background:var(--panel); color:var(--panel-ink); padding:12px; display:flex; flex-direction:column; gap:0px; box-shadow: inset -1px 0 0 rgba(255,255,255,.06); overflow:auto; min-height:0}
     .palette h2{margin:4px 0 8px; font-size:13px; text-transform:uppercase; letter-spacing:.08em; color:#d1d5db}
@@ -227,7 +258,7 @@
 <body>
   <header>
     <h1><span class="emoji">🧭</span>PAP&nbsp;Builder</h1>
-    <input id="projectTitle" clas s="project-title" type="text" placeholder="Projektname eingeben..." aria-label="Projektname" required />
+    <input id="projectTitle" class="project-title" type="text" placeholder="Projektname eingeben..." aria-label="Projektname" required />
     <div class="spacer"></div>
     <div class="btn-group" id="groupImportExport">
       <button type="button" id="btnNew" title="Neues Projekt starten"><span class="emoji">🆕</span> Neu</button>
