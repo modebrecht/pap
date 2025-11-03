@@ -127,8 +127,8 @@
     #playbackDropdown > button::after{content:""; position:absolute; right:18px; top:50%; width:8px; height:8px; border-right:2px solid currentColor; border-bottom:2px solid currentColor; transform:translateY(-50%) rotate(45deg); border-radius:1px; transition:transform .2s ease;}
     #playbackDropdown.open > button{background:linear-gradient(135deg,#0ea5e9 0%,#0284c7 100%); border-color:#0284c7; border-bottom-left-radius:0; border-bottom-right-radius:0; border-bottom:0; transform:translateY(-1px);}
     #playbackDropdown.open > button::after{transform:translateY(-50%) rotate(-135deg);}
-    #playbackDropdown .menu{min-width:172px; padding:12px 10px 8px; display:flex; flex-direction:column; gap:6px; position:absolute; top:100%; margin-top:-10px; left:50%; transform:translateX(-50%); border-radius:16px; border-top-left-radius:10px; border-top-right-radius:10px; background:linear-gradient(135deg,#0ea5e9 0%,#0284c7 100%); border:1px solid #0284c7; border-top:0; z-index:1; overflow:hidden;}
-    #playbackDropdown .menu::before{content:""; position:absolute; inset:0; background:linear-gradient(135deg,rgba(255,255,255,.35) 0%,rgba(255,255,255,.08) 60%,rgba(255,255,255,0) 100%); opacity:.65; pointer-events:none;}
+    #playbackDropdown .menu{min-width:172px; padding:12px 10px 8px; display:flex; flex-direction:column; gap:6px; position:absolute; top:100%; margin-top:-10px; left:50%; transform:translate(-50%, 8px); border-radius:16px; border-top-left-radius:10px; border-top-right-radius:10px; background:#0284c7; border:1px solid #0284c7; border-top:0; z-index:1; overflow:hidden;}
+    #playbackDropdown .menu::before{content:""; position:absolute; inset:0; background:linear-gradient(135deg,rgba(255,255,255,.25) 0%,rgba(255,255,255,.06) 65%,rgba(255,255,255,0) 100%); opacity:.75; pointer-events:none;}
     #playbackDropdown .menu > *{position:relative; z-index:1;}
     #playbackDropdown.open .menu{border-color:#0284c7;}
     #playbackDropdown .menu[aria-hidden="true"]{display:none}
@@ -1452,7 +1452,7 @@
     playbackMenu.style.position = 'absolute';
     playbackMenu.style.left = '50%';
     playbackMenu.style.top = '100%';
-    playbackMenu.style.transform = 'translate(-50%, 10px)';
+    playbackMenu.style.transform = 'translate(-50%, 8px)';
   }
 
   function getProjectTitle(){
