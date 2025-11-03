@@ -104,17 +104,20 @@
     .dropdown .menu.show{display:block}
     .dropdown .menu button{display:block; width:100%; padding:10px 12px; text-align:left; border:0; background:#fff; cursor:pointer; font-weight:600}
     .dropdown .menu button:hover{background:#f3f4f6}
-    #playbackDropdown{position:relative}
-    #playbackDropdown.open > button{background:var(--accent-2); color:#fff; border-color:#0891b2}
-    #playbackDropdown .menu{min-width:240px; padding:12px; display:flex; flex-direction:column; gap:12px}
+    #playbackDropdown{position:relative; display:inline-flex; align-items:center;}
+    #playbackDropdown > button{display:flex; align-items:center; justify-content:center; padding:8px 12px; border-radius:10px;}
+    #playbackDropdown > button .emoji{font-size:1.15em;}
+    #playbackDropdown.open > button{background:var(--accent-2); color:#fff; border-color:#0891b2; border-bottom-left-radius:0; border-bottom-right-radius:0;}
+    #playbackDropdown .menu{min-width:130px; padding:6px; display:flex; flex-direction:column; gap:4px; position:absolute; top:100%; left:50%; transform:translate(-50%, 10px); border-radius:14px; background:#fff; box-shadow:0 6px 18px rgba(15,23,42,.18); z-index:10;}
     #playbackDropdown .menu[aria-hidden="true"]{display:none}
-    #playbackDropdown .menu-section{display:flex; flex-direction:column; gap:8px}
-    #playbackDropdown .playback-speed-header{display:flex; align-items:center; justify-content:space-between; gap:12px}
-    #playbackDropdown .playback-speed-header label{font-size:12px; font-weight:600; color:var(--muted)}
-    #playbackDropdown input[type="range"]{width:100%}
-    #playbackDropdown .playback-speed-value{font-size:12px; font-weight:600; color:var(--ink); text-align:right}
-    #playbackDropdown .menu-actions{display:flex; gap:8px; justify-content:space-between}
-    #playbackDropdown .menu-actions button{flex:1; width:auto; padding:8px 10px; border-radius:10px; border:1px solid #d1d5db; background:#fff; cursor:pointer; font-weight:600; text-align:center; transition:.15s ease}
+    #playbackDropdown .menu-section{display:flex; flex-direction:column; gap:3px}
+    #playbackDropdown .playback-speed-header{display:flex; align-items:center; justify-content:space-between; gap:4px}
+    #playbackDropdown .playback-speed-header label{font-size:11px; font-weight:600; color:var(--muted)}
+    #playbackDropdown input[type="range"]{width:100%; margin:0; height:14px;}
+    #playbackDropdown .playback-speed-value{font-size:10px; font-weight:600; color:var(--ink); text-align:right}
+    #playbackDropdown .menu-actions{display:flex; gap:4px; justify-content:space-between}
+    #playbackDropdown .menu-actions button{flex:1 0 auto; width:36px; height:36px; padding:0; border-radius:50%; border:1px solid #d1d5db; background:#fff; cursor:pointer; font-weight:600; display:flex; align-items:center; justify-content:center; transition:.15s ease} 
+    #playbackDropdown .menu-actions button .emoji{font-size:1.05em;}
     #playbackDropdown .menu-actions button:hover{background:#f3f4f6}
 
     aside{grid-area:sidebar; background:var(--panel); color:var(--panel-ink); padding:12px; display:flex; flex-direction:column; gap:0px; box-shadow: inset -1px 0 0 rgba(255,255,255,.06); overflow:auto; min-height:0}
@@ -147,9 +150,12 @@
     .connector-label{fill:var(--ink); font-size:12px; font-family:var(--node-font-family); font-weight:600; pointer-events:auto; user-select:none; paint-order:stroke fill; stroke:#ffffff; stroke-width:4; stroke-linejoin:round;}
     .node-shape.playback-visited{stroke:var(--accent); stroke-width:calc(var(--playback-stroke-width, 2px) * 1.2)}
     .connector.playback-visited{stroke:var(--accent); stroke-width:calc(var(--playback-stroke-width, 2.25px) * 1.2)}
-    @keyframes playbackPulse{0%,100%{r:7.5px; filter:drop-shadow(0 0 4px rgba(22,163,74,.25));}50%{r:9.2px; filter:drop-shadow(0 0 10px rgba(22,163,74,.55));}}
-    .playback-orb{fill:var(--accent); stroke:#065f46; stroke-width:1.5; opacity:0; pointer-events:none; filter:drop-shadow(0 0 6px rgba(22,163,74,.35)); transition:opacity .18s ease}
+    @keyframes playbackPulse{0%,100%{filter:drop-shadow(0 0 4px rgba(22,163,74,.25));}50%{filter:drop-shadow(0 0 10px rgba(22,163,74,.55));}}
+    @keyframes playbackHaloPulse{0%{opacity:0; transform:scale(.9);}45%{opacity:.9; transform:scale(1.05);}100%{opacity:0; transform:scale(1.18);}}
+    .playback-orb{fill:var(--accent); stroke:#065f46; stroke-width:1.5; opacity:0; pointer-events:none; filter:drop-shadow(0 0 8px rgba(22,163,74,.45)); transition:opacity .18s ease}
+    .playback-orb-halo{fill:none; stroke:rgba(34,197,94,.55); stroke-width:3; opacity:0; pointer-events:none; transform-origin:center; transform-box:fill-box}
     .playback-orb.active{opacity:1; animation:playbackPulse 1.6s ease-in-out infinite}
+    .playback-orb-halo.active{animation:playbackHaloPulse 1.6s ease-in-out infinite}
     .toast-persistent{position:fixed; right:12px; bottom:70px; background:#0f172a; color:#f8fafc; padding:16px 18px; border-radius:16px; box-shadow:0 12px 30px rgba(15,23,42,.35); width:min(180px, calc(100% - 24px)); display:flex; flex-direction:column; gap:12px; pointer-events:auto; opacity:0; transform:translateY(12px); transition:.22s ease}
     .toast-persistent.show{opacity:1; transform:translateY(0)}
     .toast-persistent[aria-hidden="true"]{display:none}
@@ -234,8 +240,9 @@
       </div>
     </div>
     <div class="dropdown" id="playbackDropdown">
-      <button id="btnPlayback" title="Playback abspielen"><span class="emoji">▶️</span> Playback</button>
+      <button id="btnPlayback" title="Playback abspielen"><span class="emoji">▶️</span></button>
       <div class="menu" id="playbackMenu" aria-hidden="true">
+        <header class="playback-menu-handle" id="playbackMenuHandle" aria-label="Playback-Menü ziehen"></header>
         <div class="menu-section">
           <div class="playback-speed-header">
             <label for="playbackSpeed">Geschwindigkeit</label>
@@ -244,9 +251,9 @@
           <input id="playbackSpeed" type="range" min="0.1" max="2.5" step="0.1" value="1" />
         </div>
         <div class="menu-actions">
-          <button type="button" id="playbackPlay">▶︎ Play/Continue</button>
-          <button type="button" id="playbackStop">⏹︎ Stop</button>
-          <button type="button" id="playbackRestart">↺ Restart</button>
+          <button type="button" id="playbackPlay" aria-label="Play"><span class="emoji">▶︎</span></button>
+          <button type="button" id="playbackStop" aria-label="Stop"><span class="emoji">⏹︎</span></button>
+          <button type="button" id="playbackRestart" aria-label="Restart"><span class="emoji">↺</span></button>
         </div>
       </div>
     </div>
@@ -482,6 +489,7 @@
   const btnPlayback = document.getElementById('btnPlayback');
   const playbackDropdown = document.getElementById('playbackDropdown');
   const playbackMenu = document.getElementById('playbackMenu');
+  const playbackMenuHandle = null;
   const playbackSpeedSlider = document.getElementById('playbackSpeed');
   const playbackSpeedValue = document.getElementById('playbackSpeedValue');
   const playbackPlayBtn = document.getElementById('playbackPlay');
@@ -1401,8 +1409,59 @@
     speedMultiplier: 1,
     currentAnimation: null,
     pauseWaiters: [],
+    orbHalo: null,
     pendingRestart: false
   };
+
+  let playbackMenuDrag = null;
+
+  function playbackMenuDefaultPosition(){
+    if(!playbackMenu) return;
+    playbackMenu.dataset.dragPinned = '';
+    playbackMenu.style.position = 'absolute';
+    playbackMenu.style.left = '50%';
+    playbackMenu.style.top = '100%';
+    playbackMenu.style.transform = 'translate(-50%, 10px)';
+  }
+
+  function beginPlaybackMenuDrag(e){
+    const handle = e.target.closest('#playbackMenuHandle');
+    if(!handle) return;
+    e.preventDefault();
+    const menu = playbackMenu;
+    if(!menu) return;
+    const rect = menu.getBoundingClientRect();
+    playbackMenu.style.position = 'fixed';
+    playbackMenu.style.transform = 'none';
+    playbackMenu.style.left = `${rect.left}px`;
+    playbackMenu.style.top = `${rect.top}px`;
+    playbackMenu.dataset.dragPinned = '1';
+    playbackMenuDrag = {
+      offsetX: e.clientX - rect.left,
+      offsetY: e.clientY - rect.top
+    };
+    menu.classList.add('dragging');
+    window.addEventListener('pointermove', onPlaybackMenuDrag);
+    window.addEventListener('pointerup', endPlaybackMenuDrag);
+    window.addEventListener('pointercancel', endPlaybackMenuDrag);
+  }
+
+  function onPlaybackMenuDrag(e){
+    if(!playbackMenuDrag || !playbackMenu) return;
+    e.preventDefault();
+    const left = Math.min(Math.max(8, e.clientX - playbackMenuDrag.offsetX), window.innerWidth - playbackMenu.offsetWidth - 8);
+    const top = Math.min(Math.max(8, e.clientY - playbackMenuDrag.offsetY), window.innerHeight - playbackMenu.offsetHeight - 8);
+    playbackMenu.style.left = `${left}px`;
+    playbackMenu.style.top = `${top}px`;
+  }
+
+  function endPlaybackMenuDrag(){
+    if(playbackMenu) playbackMenu.classList.remove('dragging');
+    playbackMenuDrag = null;
+    window.removeEventListener('pointermove', onPlaybackMenuDrag);
+    window.removeEventListener('pointerup', endPlaybackMenuDrag);
+    window.removeEventListener('pointercancel', endPlaybackMenuDrag);
+  }
 
   function getProjectTitle(){
     const raw = typeof state.title === 'string' ? state.title.trim() : '';
@@ -1458,18 +1517,7 @@
 
   function updatePlaybackButton(){
     if(!btnPlayback) return;
-    let icon = '▶︎';
-    let label = 'Playback';
-    if(playbackState.running){
-      if(playbackState.paused){
-        icon = '▶︎';
-        label = 'Continue';
-      }else{
-        icon = '⏸︎';
-        label = 'Pause';
-      }
-    }
-    btnPlayback.innerHTML = `<span class="emoji">${icon}</span> ${label}`;
+    btnPlayback.innerHTML = `<span class="emoji">▶︎</span>`;
     btnPlayback.setAttribute('aria-pressed', playbackState.running ? 'true' : 'false');
     updatePlaybackControls();
   }
@@ -1477,20 +1525,30 @@
   function updatePlaybackControls(){
     const hasLog = Array.isArray(playbackState.log) && playbackState.log.length > 0;
     if(playbackPlayBtn){
-      let text = '▶︎ Play';
+      let icon = '▶︎';
+      let label = 'Play';
       if(playbackState.running){
-        text = playbackState.paused ? '▶︎ Continue' : '⏸︎ Pause';
+        if(playbackState.paused){
+          icon = '▶︎';
+          label = 'Continue';
+        }else{
+          icon = '⏸︎';
+          label = 'Pause';
+        }
       }else if(playbackState.paused){
-        text = '▶︎ Continue';
+        label = 'Continue';
       }
-      playbackPlayBtn.textContent = text;
+      playbackPlayBtn.innerHTML = `<span class="emoji">${icon}</span>`;
+      playbackPlayBtn.setAttribute('aria-label', label);
     }
     if(playbackStopBtn){
-      playbackStopBtn.textContent = '⏹︎ Stop';
+      playbackStopBtn.innerHTML = `<span class="emoji">⏹︎</span>`;
+      playbackStopBtn.setAttribute('aria-label', 'Stop');
       playbackStopBtn.disabled = !playbackState.running;
     }
     if(playbackRestartBtn){
-      playbackRestartBtn.textContent = '⟳ Restart';
+      playbackRestartBtn.innerHTML = `<span class="emoji">↺</span>`;
+      playbackRestartBtn.setAttribute('aria-label', 'Restart');
       const canRestart = playbackState.running || hasLog;
       playbackRestartBtn.disabled = !canRestart;
     }
@@ -1512,13 +1570,18 @@
     if(playbackState.orb){
       playbackState.orb.classList.remove('active');
     }
+    if(playbackState.orbHalo){
+      playbackState.orbHalo.classList.remove('active');
+    }
   }
 
-  function hidePlaybackToast(){
+  function hidePlaybackToast(force=true){
     if(!playbackToast) return;
-    playbackToast.classList.remove('show');
-    playbackToast.setAttribute('aria-hidden','true');
-    playbackToast.innerHTML = '';
+    if(force){
+      playbackToast.classList.remove('show');
+      playbackToast.setAttribute('aria-hidden','true');
+      playbackToast.innerHTML = '';
+    }
   }
 
   function escapeHtml(value){
@@ -1597,6 +1660,17 @@
     const shouldShow = typeof force === 'boolean' ? force : playbackMenu.getAttribute('aria-hidden') === 'true';
     playbackMenu.setAttribute('aria-hidden', shouldShow ? 'false' : 'true');
     playbackDropdown.classList.toggle('open', shouldShow);
+    const pinned = playbackMenu.dataset.dragPinned === '1';
+    if(shouldShow){
+      if(pinned){
+        playbackMenu.style.position = 'fixed';
+        playbackMenu.style.transform = 'none';
+      }else{
+        if(playbackMenu) playbackMenuDefaultPosition();
+      }
+    }else if(!pinned){
+      if(playbackMenu) playbackMenuDefaultPosition();
+    }
     if(shouldShow && playbackSpeedSlider){
       const playbackSliderValue = Number(playbackState.speedMultiplier.toFixed(2));
       playbackSpeedSlider.value = String(playbackSliderValue);
@@ -1663,7 +1737,8 @@
   }
 
   function restartPlayback(){
-    hidePlaybackToast();
+    hidePlaybackToast(false);
+    togglePlaybackMenu(true);
     if(playbackState.running){
       playbackState.pendingRestart = true;
       stopPlayback();
@@ -1674,27 +1749,53 @@
     playbackState.stopRequested = false;
     resetPlaybackVisuals();
     playbackState.log = [];
+    togglePlaybackMenu(true);
     startPlaybackFlow();
   }
 
   function ensurePlaybackOrb(){
-    if(playbackState.orb && playbackState.orb.ownerSVGElement){
-      return playbackState.orb;
+    let halo = playbackState.orbHalo;
+    if(!halo || !halo.ownerSVGElement){
+      halo = document.createElementNS('http://www.w3.org/2000/svg','circle');
+      halo.id = 'playbackOrbHalo';
+      halo.setAttribute('r', 14.3);
+      halo.classList.add('playback-orb-halo');
+      layerCons.appendChild(halo);
+      playbackState.orbHalo = halo;
     }
-    const orb = document.createElementNS('http://www.w3.org/2000/svg','circle');
-    orb.id = 'playbackOrb';
-    orb.setAttribute('r', 8);
-    orb.classList.add('playback-orb');
-    layerCons.appendChild(orb);
-    playbackState.orb = orb;
+    let orb = playbackState.orb;
+    if(!orb || !orb.ownerSVGElement){
+      orb = document.createElementNS('http://www.w3.org/2000/svg','circle');
+      orb.id = 'playbackOrb';
+      orb.setAttribute('r', 9.75);
+      orb.classList.add('playback-orb');
+      orb.style.transformOrigin = 'center';
+      orb.style.transformBox = 'fill-box';
+      if(halo && halo.parentNode === layerCons){
+        layerCons.insertBefore(orb, halo.nextSibling);
+      }else{
+        layerCons.appendChild(orb);
+      }
+      playbackState.orb = orb;
+    }else if(halo && halo.parentNode === layerCons){
+      if(orb.previousSibling !== halo){
+        layerCons.insertBefore(halo, orb);
+      }
+    }
     return orb;
   }
 
   function positionOrbAtPoint(point){
     if(!point) return;
     const orb = ensurePlaybackOrb();
-    orb.setAttribute('cx', Number(point.x).toFixed(2));
-    orb.setAttribute('cy', Number(point.y).toFixed(2));
+    const cx = Number(point.x).toFixed(2);
+    const cy = Number(point.y).toFixed(2);
+    orb.setAttribute('cx', cx);
+    orb.setAttribute('cy', cy);
+    if(playbackState.orbHalo){
+      playbackState.orbHalo.setAttribute('cx', cx);
+      playbackState.orbHalo.setAttribute('cy', cy);
+    }
   }
 
   function positionOrbAtNode(node){
@@ -1753,6 +1854,9 @@
     if(orb){
       positionOrbAtNode(startNode);
       orb.classList.add('active');
+      if(playbackState.orbHalo){
+        playbackState.orbHalo.classList.add('active');
+      }
     }
     playbackState.log.push(getNodeLabel(startId) || startId);
     try{
@@ -1972,12 +2076,15 @@
     if(playbackState.orb){
       playbackState.orb.classList.remove('active');
     }
+    if(playbackState.orbHalo){
+      playbackState.orbHalo.classList.remove('active');
+    }
     if(!aborted){
       resetPlaybackVisuals();
     }
     updatePlaybackButton();
     if(shouldRestart){
-      hidePlaybackToast();
+      hidePlaybackToast(false);
       resetPlaybackVisuals();
       playbackState.log = [];
       playbackState.stopRequested = false;
@@ -1992,12 +2099,25 @@
     btnPlayback.addEventListener('click', (e)=>{
       e.preventDefault();
       e.stopPropagation();
-      togglePlaybackMenu();
+      if(playbackState.running){
+        togglePlaybackMenu(true);
+      }else{
+        togglePlaybackMenu();
+      }
     });
   }
   if(playbackMenu){
     playbackMenu.addEventListener('click', (e)=> e.stopPropagation());
+    playbackMenu.addEventListener('pointerdown', beginPlaybackMenuDrag);
   }
+  if(playbackMenuHandle){
+    playbackMenuHandle.addEventListener('dblclick', (e)=>{
+      e.preventDefault();
+      if(playbackMenu) playbackMenuDefaultPosition();
+      togglePlaybackMenu(true);
+    });
+  }
+  if(playbackMenu) playbackMenuDefaultPosition();
   if(playbackSpeedSlider){
     setPlaybackSpeedMultiplier(playbackSpeedSlider.value || playbackState.speedMultiplier);
     const initSliderValue = Number(playbackState.speedMultiplier.toFixed(2));
@@ -2050,7 +2170,7 @@
       if(!actionBtn) return;
       const action = actionBtn.dataset.action;
       if(action === 'close'){
-        hidePlaybackToast();
+        hidePlaybackToast(false);
       }else if(action === 'copy'){
         copyPlaybackPathToClipboard();
       }else if(action === 'export-txt'){
@@ -2107,7 +2227,7 @@
         closeSettings();
         return;
       }
-      if(playbackMenu && playbackMenu.getAttribute('aria-hidden') === 'false'){
+      if(playbackMenu && playbackMenu.getAttribute('aria-hidden') === 'false' && !playbackState.running){
         togglePlaybackMenu(false);
         return;
       }
@@ -2178,7 +2298,7 @@
   document.addEventListener('click', (e)=>{
     if(connectorMenuVisible && connectorMenu && !connectorMenu.contains(e.target)) closeConnectorMenu();
     if(nodeMenuVisible && nodeMenu && !nodeMenu.contains(e.target)) closeNodeMenu();
-    if(playbackMenu && playbackMenu.getAttribute('aria-hidden') === 'false'){
+    if(playbackMenu && playbackMenu.getAttribute('aria-hidden') === 'false' && !playbackState.running){
       if(!playbackDropdown || !playbackDropdown.contains(e.target)){
         togglePlaybackMenu(false);
       }
