@@ -3210,19 +3210,60 @@
     if(!canvas) return;
 
     const rect = canvas.getBoundingClientRect();
-    const fallbackWidth = Number(canvas.getAttribute('width')) || canvas.viewBox?.baseVal?.width || canvas.clientWidth;
-    const fallbackHeight = Number(canvas.getAttribute('height')) || canvas.viewBox?.baseVal?.height || canvas.clientHeight;
-    const primaryWidth = Math.floor(rect.width);
-    const secondaryWidth = Math.floor(fallbackWidth || 0);
-    const primaryHeight = Math.floor(rect.height);
-    const secondaryHeight = Math.floor(fallbackHeight || 0);
-    const width = primaryWidth > 0 ? primaryWidth : (secondaryWidth > 0 ? secondaryWidth : 1);
-    const height = primaryHeight > 0 ? primaryHeight : (secondaryHeight > 0 ? secondaryHeight : 1);
+    const fallbackWidthValue = Number(canvas.getAttribute('width')) || canvas.viewBox?.baseVal?.width || rect.width || canvas.clientWidth;
+    const fallbackHeightValue = Number(canvas.getAttribute('height')) || canvas.viewBox?.baseVal?.height || rect.height || canvas.clientHeight;
+    const fallbackWidth = Math.max(1, Math.floor(fallbackWidthValue || 0));
+    const fallbackHeight = Math.max(1, Math.floor(fallbackHeightValue || 0));
+
+    const contentBounds = (() => {
+      const boxes = [];
+      const pushBox = (bbox) => {
+        if(!bbox) return;
+        const {x, y, width: bw, height: bh} = bbox;
+        if(!Number.isFinite(x) || !Number.isFinite(y) || !Number.isFinite(bw) || !Number.isFinite(bh)) return;
+        const minX = Math.min(x, x + bw);
+        const minY = Math.min(y, y + bh);
+        const maxX = Math.max(x, x + bw);
+        const maxY = Math.max(y, y + bh);
+        boxes.push({minX, minY, maxX, maxY});
+      };
+      try{ if(layerNodes) pushBox(layerNodes.getBBox()); }catch{}
+      try{ if(layerCons) pushBox(layerCons.getBBox()); }catch{}
+      if(boxes.length === 0) return null;
+      let minX = Infinity;
+      let minY = Infinity;
+      let maxX = -Infinity;
+      let maxY = -Infinity;
+      for(const box of boxes){
+        if(box.minX < minX) minX = box.minX;
+        if(box.minY < minY) minY = box.minY;
+        if(box.maxX > maxX) maxX = box.maxX;
+        if(box.maxY > maxY) maxY = box.maxY;
+      }
+      if(!Number.isFinite(minX) || !Number.isFinite(minY) || !Number.isFinite(maxX) || !Number.isFinite(maxY)) return null;
+      return {minX, minY, maxX, maxY};
+    })();
+
+    const padding = 32;
+    let viewMinX = 0;
+    let viewMinY = 0;
+    let exportWidth = fallbackWidth;
+    let exportHeight = fallbackHeight;
+    if(contentBounds){
+      const paddedMinX = Math.floor(contentBounds.minX) - padding;
+      const paddedMinY = Math.floor(contentBounds.minY) - padding;
+      const paddedMaxX = Math.ceil(contentBounds.maxX) + padding;
+      const paddedMaxY = Math.ceil(contentBounds.maxY) + padding;
+      viewMinX = paddedMinX;
+      viewMinY = paddedMinY;
+      exportWidth = Math.max(1, paddedMaxX - paddedMinX);
+      exportHeight = Math.max(1, paddedMaxY - paddedMinY);
+    }
 
     const clone = canvas.cloneNode(true);
-    clone.setAttribute('width', width);
-    clone.setAttribute('height', height);
-    clone.setAttribute('viewBox', `0 0 ${width} ${height}`);
+    clone.setAttribute('width', exportWidth);
+    clone.setAttribute('height', exportHeight);
+    clone.setAttribute('viewBox', `${viewMinX} ${viewMinY} ${exportWidth} ${exportHeight}`);
 
     const cssVar = (name, fallback)=>{ try{ return getComputedStyle(document.documentElement).getPropertyValue(name).trim()||fallback; }catch{ return fallback; } };
     const style = document.createElementNS('http://www.w3.org/2000/svg','style');
@@ -3234,11 +3275,17 @@ marker path{fill:#64748b}
     `;
     clone.insertBefore(style, clone.firstChild);
 
+    let bg = null;
     if(!withGrid){
-      const bg=document.createElementNS('http://www.w3.org/2000/svg','rect');
-      bg.setAttribute('x','0'); bg.setAttribute('y','0'); bg.setAttribute('width','100%'); bg.setAttribute('height','100%');
+      bg=document.createElementNS('http://www.w3.org/2000/svg','rect');
       bg.setAttribute('fill','#ffffff');
       clone.insertBefore(bg, style.nextSibling);
+    }
+    if(bg){
+      bg.setAttribute('x', viewMinX);
+      bg.setAttribute('y', viewMinY);
+      bg.setAttribute('width', exportWidth);
+      bg.setAttribute('height', exportHeight);
     }
 
     const serializer = new XMLSerializer();
@@ -3249,32 +3296,32 @@ marker path{fill:#64748b}
     img.onload = ()=>{
       URL.revokeObjectURL(url);
       const exportCanvas = document.createElement('canvas');
-      exportCanvas.width = width;
-      exportCanvas.height = height;
+      exportCanvas.width = exportWidth;
+      exportCanvas.height = exportHeight;
       const ctx = exportCanvas.getContext('2d');
       if(!ctx){
         showToast('Export fehlgeschlagen (Canvas)');
         return;
       }
-      ctx.drawImage(img, 0, 0, width, height);
+      ctx.drawImage(img, 0, 0, exportWidth, exportHeight);
       const bgColor = cssVar('--bg','#ffffff');
       if(withGrid){
         const gridStep = Number(state.grid) || parseFloat(cssVar('--grid-step','20px')) || 20;
         const gridColor = cssVar('--grid-color','#e5e7eb');
         ctx.save();
         ctx.globalCompositeOperation = 'destination-over';
-        drawGrid(ctx, width, height, gridStep, gridColor);
+        drawGrid(ctx, exportWidth, exportHeight, gridStep, gridColor);
         ctx.restore();
         ctx.save();
         ctx.globalCompositeOperation = 'destination-over';
         ctx.fillStyle = bgColor || '#ffffff';
-        ctx.fillRect(0,0,width,height);
+        ctx.fillRect(0,0,exportWidth,exportHeight);
         ctx.restore();
       }else{
         ctx.save();
         ctx.globalCompositeOperation = 'destination-over';
         ctx.fillStyle = '#ffffff';
-        ctx.fillRect(0,0,width,height);
+        ctx.fillRect(0,0,exportWidth,exportHeight);
         ctx.restore();
       }
       const png = exportCanvas.toDataURL('image/png');
