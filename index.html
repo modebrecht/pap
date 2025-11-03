@@ -1796,7 +1796,11 @@
     if(!nodeEl) return;
     const shape = nodeEl.querySelector('.node-shape');
     if(!shape) return;
-    const baseWidth = typeof window !== 'undefined' ? parseFloat(window.getComputedStyle(shape).strokeWidth) || 2 : 2;
+    let baseWidth = Number(shape.dataset.baseStrokeWidth);
+    if(!Number.isFinite(baseWidth)){
+      baseWidth = typeof window !== 'undefined' ? parseFloat(window.getComputedStyle(shape).strokeWidth) || 2 : 2;
+      shape.dataset.baseStrokeWidth = String(baseWidth);
+    }
     shape.style.setProperty('--playback-stroke-width', `${baseWidth}px`);
     shape.classList.add('playback-visited');
   }
@@ -1805,7 +1809,11 @@
     if(!layerCons) return;
     const line = document.getElementById(connectorId);
     if(!line) return;
-    const baseWidth = typeof window !== 'undefined' ? parseFloat(window.getComputedStyle(line).strokeWidth) || 2.25 : 2.25;
+    let baseWidth = Number(line.dataset.baseStrokeWidth);
+    if(!Number.isFinite(baseWidth)){
+      baseWidth = typeof window !== 'undefined' ? parseFloat(window.getComputedStyle(line).strokeWidth) || 2.25 : 2.25;
+      line.dataset.baseStrokeWidth = String(baseWidth);
+    }
     line.style.setProperty('--playback-stroke-width', `${baseWidth}px`);
     line.classList.add('playback-visited');
   }
