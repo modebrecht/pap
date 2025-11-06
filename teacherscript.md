@@ -86,3 +86,50 @@
   on();
   console.log('PAP: sanfter Node-High-Contrast aktiv. Toggle mit Taste "H".');
 })();
+
+// CONNECTOR Farbe ändern
+(() => {
+  // ======= KONFIG =======
+  const CFG = {
+    COLOR: '#111111',   // Linienfarbe der Verbindungen
+    WIDTH: 2.2,         // Linienstärke der Verbindungen
+    DASH:  null         // z.B. '6,4' für gestrichelt, oder null für durchgezogen
+  };
+  // ======================
+  const STYLE_ID = 'pap-connector-contrast';
+  const CSS = `
+    /* Nur Verbindungen (line/path), KEINE Marker (Pfeilspitzen) */
+    svg :not(marker) > line,
+    svg :not(marker) > path {
+      stroke: ${CFG.COLOR} !important;
+      stroke-width: ${CFG.WIDTH}px !important;
+      ${CFG.DASH ? `stroke-dasharray: ${CFG.DASH} !important;` : ''}
+    }
+    /* Pfeilspitzen (marker) NICHT überschreiben */
+    svg marker, svg marker * { /* absichtlich leer */ }
+  `;
+  function on() {
+    if (document.getElementById(STYLE_ID)) return;
+    const s = document.createElement('style');
+    s.id = STYLE_ID;
+    s.textContent = CSS;
+    document.head.appendChild(s);
+    console.log('Connector-Contrast: AN');
+  }
+  function off() {
+    const s = document.getElementById(STYLE_ID);
+    if (s) s.remove();
+    console.log('Connector-Contrast: AUS');
+  }
+  function toggle() {
+    document.getElementById(STYLE_ID) ? off() : on();
+  }
+  // Optional kleine API
+  window.papConnectors = { on, off, toggle, CFG };
+  // Taste "L" = Toggle
+  window.addEventListener('keydown', (e) => {
+    if (e.key.toLowerCase() === 'l') toggle();
+  });
+  on(); // beim Einfügen gleich aktivieren
+  'OK';
+})();
