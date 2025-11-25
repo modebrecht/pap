@@ -1,0 +1,167 @@
+{
+  "nodes": [
+    {
+      "id": "n-1",
+      "type": "terminator",
+      "x": 240,
+      "y": 120,
+      "w": 160,
+      "h": 70,
+      "label": "Start",
+      "heightScale": 1
+    },
+    {
+      "id": "n-2",
+      "type": "decision",
+      "x": 240,
+      "y": 320,
+      "w": 160,
+      "h": 105,
+      "label": "Strom vorhanden?",
+      "heightScale": 1.5
+    },
+    {
+      "id": "n-3",
+      "type": "terminator",
+      "x": 800,
+      "y": 320,
+      "w": 160,
+      "h": 70,
+      "label": "Ende",
+      "heightScale": 1
+    },
+    {
+      "id": "n-5",
+      "type": "io",
+      "x": 240,
+      "y": 520,
+      "w": 160,
+      "h": 105,
+      "label": "ToasterKnopf drücken",
+      "heightScale": 1.5
+    },
+    {
+      "id": "n-9",
+      "type": "process",
+      "x": 240,
+      "y": 720,
+      "w": 160,
+      "h": 70,
+      "label": "Brot toasten",
+      "heightScale": 1
+    },
+    {
+      "id": "n-11",
+      "type": "io",
+      "x": 800,
+      "y": 720,
+      "w": 160,
+      "h": 70,
+      "label": "Ausgabe getoastetes Brot",
+      "heightScale": 1
+    },
+    {
+      "id": "n-14",
+      "type": "decision",
+      "x": 560,
+      "y": 720,
+      "w": 160,
+      "h": 70,
+      "label": "Abbrechen-Knopf gedrückt ?",
+      "heightScale": 1
+    },
+    {
+      "id": "n-16",
+      "type": "io",
+      "x": 560,
+      "y": 520,
+      "w": 160,
+      "h": 105,
+      "label": "Toastvorgang abgebrochen, Brot auswerfen",
+      "heightScale": 1.5
+    }
+  ],
+  "connectors": [
+    {
+      "id": "c-6",
+      "fromId": "n-1",
+      "toId": "n-2",
+      "arrow": true,
+      "label": ""
+    },
+    {
+      "id": "c-7",
+      "fromId": "n-2",
+      "toId": "n-3",
+      "arrow": true,
+      "label": "nein"
+    },
+    {
+      "id": "c-8",
+      "fromId": "n-2",
+      "toId": "n-5",
+      "arrow": true,
+      "label": "ja"
+    },
+    {
+      "id": "c-10",
+      "fromId": "n-5",
+      "toId": "n-9",
+      "arrow": true,
+      "label": ""
+    },
+    {
+      "id": "c-13",
+      "fromId": "n-11",
+      "toId": "n-3",
+      "arrow": true,
+      "label": ""
+    },
+    {
+      "id": "c-15",
+      "fromId": "n-9",
+      "toId": "n-14",
+      "arrow": true,
+      "label": ""
+    },
+    {
+      "id": "c-17",
+      "fromId": "n-14",
+      "toId": "n-16",
+      "arrow": true,
+      "label": "ja"
+    },
+    {
+      "id": "c-19",
+      "fromId": "n-16",
+      "toId": "n-3",
+      "arrow": true,
+      "label": ""
+    },
+    {
+      "id": "c-21",
+      "fromId": "n-14",
+      "toId": "n-11",
+      "arrow": true,
+      "label": "nein"
+    }
+  ],
+  "meta": {
+    "grid": 40,
+    "savedAt": "2025-11-25T09:32:26.143Z",
+    "nextId": 22,
+    "verticalUnlimited": true,
+    "horizontalUnlimited": false,
+    "fontSize": 20,
+    "sidebarCollapsed": false,
+    "floatingPalette": {
+      "x": 300,
+      "y": 16
+    },
+    "maxViewportWidth": 2160,
+    "maxViewportHeight": 1155,
+    "stageWidth": 2160,
+    "stageHeight": 1155,
+    "title": "Toaster-Abbrechen"
+  }
+}

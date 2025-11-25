@@ -1,0 +1,303 @@
+{
+  "nodes": [
+    {
+      "id": "n-1",
+      "type": "terminator",
+      "x": 680,
+      "y": 80,
+      "w": 160,
+      "h": 70,
+      "label": "Start",
+      "heightScale": 1
+    },
+    {
+      "id": "n-2",
+      "type": "decision",
+      "x": 960,
+      "y": 240,
+      "w": 160,
+      "h": 70,
+      "label": "Strom?",
+      "heightScale": 1
+    },
+    {
+      "id": "n-4",
+      "type": "terminator",
+      "x": 240,
+      "y": 240,
+      "w": 160,
+      "h": 70,
+      "label": "Ende",
+      "heightScale": 1
+    },
+    {
+      "id": "n-6",
+      "type": "process",
+      "x": 600,
+      "y": 400,
+      "w": 160,
+      "h": 70,
+      "label": "Rot einschalten",
+      "heightScale": 1
+    },
+    {
+      "id": "n-8",
+      "type": "process",
+      "x": 240,
+      "y": 400,
+      "w": 160,
+      "h": 70,
+      "label": "Warten 20s",
+      "heightScale": 1
+    },
+    {
+      "id": "n-10",
+      "type": "process",
+      "x": 240,
+      "y": 520,
+      "w": 160,
+      "h": 70,
+      "label": "Orange einschalten",
+      "heightScale": 1
+    },
+    {
+      "id": "n-12",
+      "type": "process",
+      "x": 240,
+      "y": 840,
+      "w": 160,
+      "h": 70,
+      "label": "Grün einschalten",
+      "heightScale": 1
+    },
+    {
+      "id": "n-14",
+      "type": "process",
+      "x": 240,
+      "y": 680,
+      "w": 160,
+      "h": 70,
+      "label": "Warten 5s",
+      "heightScale": 1
+    },
+    {
+      "id": "n-17",
+      "type": "process",
+      "x": 240,
+      "y": 1000,
+      "w": 160,
+      "h": 70,
+      "label": "Warten 20s",
+      "heightScale": 1
+    },
+    {
+      "id": "n-19",
+      "type": "process",
+      "x": 240,
+      "y": 1160,
+      "w": 160,
+      "h": 70,
+      "label": "Orange einschalten",
+      "heightScale": 1
+    },
+    {
+      "id": "n-21",
+      "type": "process",
+      "x": 960,
+      "y": 1160,
+      "w": 160,
+      "h": 70,
+      "label": "Warten 5s",
+      "heightScale": 1
+    },
+    {
+      "id": "n-24",
+      "type": "decision",
+      "x": 520,
+      "y": 640,
+      "w": 160,
+      "h": 140,
+      "label": "Fussgängerknopf gedrückt?",
+      "heightScale": 2
+    },
+    {
+      "id": "n-27",
+      "type": "process",
+      "x": 840,
+      "y": 600,
+      "w": 160,
+      "h": 70,
+      "label": "Fussgänger-Grünlicht einschalten",
+      "heightScale": 1
+    },
+    {
+      "id": "n-29",
+      "type": "process",
+      "x": 840,
+      "y": 760,
+      "w": 160,
+      "h": 70,
+      "label": "Warten 30s",
+      "heightScale": 1
+    },
+    {
+      "id": "n-31",
+      "type": "process",
+      "x": 840,
+      "y": 880,
+      "w": 160,
+      "h": 70,
+      "label": "Fussgäner OrangeLicht",
+      "heightScale": 1
+    },
+    {
+      "id": "n-33",
+      "type": "process",
+      "x": 760,
+      "y": 1000,
+      "w": 160,
+      "h": 70,
+      "label": "Warten 3s",
+      "heightScale": 1
+    }
+  ],
+  "connectors": [
+    {
+      "id": "c-3",
+      "fromId": "n-1",
+      "toId": "n-2",
+      "arrow": true,
+      "label": ""
+    },
+    {
+      "id": "c-5",
+      "fromId": "n-2",
+      "toId": "n-4",
+      "arrow": true,
+      "label": "Nein"
+    },
+    {
+      "id": "c-7",
+      "fromId": "n-2",
+      "toId": "n-6",
+      "arrow": true,
+      "label": "Ja"
+    },
+    {
+      "id": "c-11",
+      "fromId": "n-8",
+      "toId": "n-10",
+      "arrow": true,
+      "label": ""
+    },
+    {
+      "id": "c-15",
+      "fromId": "n-10",
+      "toId": "n-14",
+      "arrow": true,
+      "label": ""
+    },
+    {
+      "id": "c-16",
+      "fromId": "n-14",
+      "toId": "n-12",
+      "arrow": true,
+      "label": ""
+    },
+    {
+      "id": "c-18",
+      "fromId": "n-12",
+      "toId": "n-17",
+      "arrow": true,
+      "label": ""
+    },
+    {
+      "id": "c-20",
+      "fromId": "n-17",
+      "toId": "n-19",
+      "arrow": true,
+      "label": ""
+    },
+    {
+      "id": "c-22",
+      "fromId": "n-19",
+      "toId": "n-21",
+      "arrow": true,
+      "label": ""
+    },
+    {
+      "id": "c-23",
+      "fromId": "n-21",
+      "toId": "n-2",
+      "arrow": true,
+      "label": ""
+    },
+    {
+      "id": "c-25",
+      "fromId": "n-6",
+      "toId": "n-24",
+      "arrow": true,
+      "label": ""
+    },
+    {
+      "id": "c-26",
+      "fromId": "n-24",
+      "toId": "n-8",
+      "arrow": true,
+      "label": "nein"
+    },
+    {
+      "id": "c-28",
+      "fromId": "n-24",
+      "toId": "n-27",
+      "arrow": true,
+      "label": "ja"
+    },
+    {
+      "id": "c-30",
+      "fromId": "n-27",
+      "toId": "n-29",
+      "arrow": true,
+      "label": ""
+    },
+    {
+      "id": "c-32",
+      "fromId": "n-29",
+      "toId": "n-31",
+      "arrow": true,
+      "label": ""
+    },
+    {
+      "id": "c-34",
+      "fromId": "n-31",
+      "toId": "n-33",
+      "arrow": true,
+      "label": ""
+    },
+    {
+      "id": "c-36",
+      "fromId": "n-33",
+      "toId": "n-6",
+      "arrow": true,
+      "label": ""
+    }
+  ],
+  "meta": {
+    "grid": 40,
+    "savedAt": "2025-11-25T09:33:33.036Z",
+    "nextId": 37,
+    "verticalUnlimited": true,
+    "horizontalUnlimited": true,
+    "fontSize": 14,
+    "sidebarCollapsed": false,
+    "floatingPalette": {
+      "x": 300,
+      "y": 16
+    },
+    "maxViewportWidth": 1824,
+    "maxViewportHeight": 1475,
+    "stageWidth": 1824,
+    "stageHeight": 1475,
+    "title": "Ampel-Fussgänger"
+  }
+}

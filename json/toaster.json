@@ -1,0 +1,126 @@
+{
+  "nodes": [
+    {
+      "id": "n-1",
+      "type": "terminator",
+      "x": 240,
+      "y": 120,
+      "w": 160,
+      "h": 70,
+      "label": "Start",
+      "heightScale": 1
+    },
+    {
+      "id": "n-2",
+      "type": "decision",
+      "x": 240,
+      "y": 320,
+      "w": 160,
+      "h": 105,
+      "label": "Strom vorhanden?",
+      "heightScale": 1.5
+    },
+    {
+      "id": "n-3",
+      "type": "terminator",
+      "x": 520,
+      "y": 320,
+      "w": 160,
+      "h": 70,
+      "label": "Ende",
+      "heightScale": 1
+    },
+    {
+      "id": "n-5",
+      "type": "io",
+      "x": 240,
+      "y": 520,
+      "w": 160,
+      "h": 70,
+      "label": "Toaster-Knopf drücken",
+      "heightScale": 1
+    },
+    {
+      "id": "n-9",
+      "type": "process",
+      "x": 240,
+      "y": 720,
+      "w": 160,
+      "h": 70,
+      "label": "Brot toasten",
+      "heightScale": 1
+    },
+    {
+      "id": "n-11",
+      "type": "io",
+      "x": 520,
+      "y": 720,
+      "w": 160,
+      "h": 70,
+      "label": "Brotausgabe",
+      "heightScale": 1
+    }
+  ],
+  "connectors": [
+    {
+      "id": "c-6",
+      "fromId": "n-1",
+      "toId": "n-2",
+      "arrow": true,
+      "label": ""
+    },
+    {
+      "id": "c-7",
+      "fromId": "n-2",
+      "toId": "n-3",
+      "arrow": true,
+      "label": "nein"
+    },
+    {
+      "id": "c-8",
+      "fromId": "n-2",
+      "toId": "n-5",
+      "arrow": true,
+      "label": "ja"
+    },
+    {
+      "id": "c-10",
+      "fromId": "n-5",
+      "toId": "n-9",
+      "arrow": true,
+      "label": ""
+    },
+    {
+      "id": "c-12",
+      "fromId": "n-9",
+      "toId": "n-11",
+      "arrow": true,
+      "label": ""
+    },
+    {
+      "id": "c-13",
+      "fromId": "n-11",
+      "toId": "n-3",
+      "arrow": true,
+      "label": ""
+    }
+  ],
+  "meta": {
+    "grid": 40,
+    "savedAt": "2025-11-25T09:27:01.522Z",
+    "nextId": 14,
+    "verticalUnlimited": true,
+    "horizontalUnlimited": false,
+    "fontSize": 22,
+    "sidebarCollapsed": false,
+    "floatingPalette": {
+      "x": 300,
+      "y": 16
+    },
+    "maxViewportWidth": 2160,
+    "maxViewportHeight": 1151,
+    "stageWidth": 2160,
+    "stageHeight": 1151,
+    "title": "Toaster"
+  }
+}
