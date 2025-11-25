@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="de">
 <head>
   <meta charset="utf-8" />
@@ -161,7 +161,7 @@
     aside{grid-area:sidebar; background:var(--panel); color:var(--panel-ink); padding:12px; display:flex; flex-direction:column; gap:0px; box-shadow: inset -1px 0 0 rgba(255,255,255,.06); overflow:auto; min-height:0}
     .palette h2{margin:4px 0 8px; font-size:13px; text-transform:uppercase; letter-spacing:.08em; color:#d1d5db}
     .shape{background:rgba(255,255,255,.1); border:1px solid rgba(255,255,255,.2); border-radius:12px; padding:10px; display:flex; align-items:center; gap:10px; cursor:grab; user-select:none}
-    .shape + .shape{margin-top:8px}
+    .shape + .shape{margin-top:10px}
     .shape svg{width:36px; height:28px}
     .shape strong{color:#fff}
     .shape[draggable="true"]:active{cursor:grabbing}
@@ -253,87 +253,13 @@
     .context-menu .menu-inline button{width:auto; flex:1 1 30%; padding:6px 8px; border-radius:6px; border:1px solid rgba(255,255,255,.15); background:rgba(148,163,184,.15); text-align:center}
     .context-menu .menu-inline button:hover{background:rgba(59,130,246,.25)}
     .context-menu .menu-inline button.active{background:rgba(59,130,246,.4); border-color:rgba(59,130,246,.6)}
-    .floating-palette{position:fixed; top:120px; left:120px; width:208px; max-width:90vw; max-height:70vh; overflow:hidden; background:var(--panel); color:var(--panel-ink); border-radius:16px; box-shadow:var(--shadow); padding:14px; display:none; z-index:80}
+    .floating-palette{position:fixed; top:120px; left:120px; width:208px; max-width:90vw; max-height:70vh; overflow:auto; background:var(--panel); color:var(--panel-ink); border-radius:16px; box-shadow:var(--shadow); padding:14px; display:none; z-index:80}
     .floating-palette.show{display:block}
     .floating-palette .palette{margin:0}
     .floating-palette .palette-head{cursor:move; user-select:none}
     .floating-palette .palette-head button{cursor:pointer}
     body.sidebar-collapsed{grid-template-columns:0 minmax(0,1fr)}
     body.sidebar-collapsed aside{display:none}
-    body.mobile-layout{
-      grid-template-columns:minmax(0,1fr);
-      grid-template-rows:auto minmax(0,1fr);
-      grid-template-areas:
-        "header"
-        "main";
-    }
-    body.mobile-layout header{
-      flex-wrap:wrap;
-      gap:8px;
-      align-items:flex-start;
-      padding:10px 12px;
-    }
-    body.mobile-layout header .spacer{display:none}
-    body.mobile-layout header .project-title{
-      flex:1 1 100%;
-      max-width:none;
-    }
-    body.mobile-layout header .btn-group{
-      width:100%;
-      flex-wrap:wrap;
-      justify-content:center;
-    }
-    body.mobile-layout header .btn-group > *,
-    body.mobile-layout header button,
-    body.mobile-layout header .dropdown{flex:1 1 auto; min-width:0}
-    body.mobile-layout #btnTogglePalette{display:none}
-    body.mobile-layout main{overflow:auto}
-    body.mobile-layout .floating-palette{
-      width:min(220px, calc(100vw - 40px));
-      max-height:60vh;
-      left:20px;
-      padding:10px;
-      overflow:hidden;
-    }
-    body.mobile-layout .floating-palette .palette{
-      max-height:100%;
-      overflow:hidden;
-      padding-bottom:10px;
-      display:flex;
-      flex-direction:column;
-      gap:4px;
-    }
-    body.mobile-layout .floating-palette .shape{
-      padding:6px;
-      gap:6px;
-      margin:0;
-    }
-    .mobile-palette-toggle{
-      position:fixed;
-      right:16px;
-      bottom:16px;
-      border:none;
-      background:var(--accent-2);
-      color:#fff;
-      font-weight:700;
-      border-radius:999px;
-      padding:12px 18px;
-      box-shadow:var(--shadow);
-      display:none;
-      z-index:120;
-      min-width:0;
-    }
-    .mobile-palette-toggle:active{transform:translateY(1px);}
-    .mobile-palette-toggle.active{background:var(--accent);}
-    body.mobile-layout .mobile-palette-toggle{display:inline-flex; align-items:center; gap:8px;}
-    body.mobile-layout .mobile-palette-toggle .indicator{
-      width:8px;
-      height:8px;
-      border-radius:50%;
-      background:#fff;
-      opacity:.8;
-    }
-    body.mobile-layout .mobile-palette-toggle.active .indicator{background:#064e3b; opacity:1;}
   </style>
 </head>
 <body>
@@ -442,10 +368,6 @@
       </svg>
     </div>
   </main>
-  <button type="button" id="btnMobilePalette" class="mobile-palette-toggle" aria-pressed="false">
-    <span class="indicator"></span>
-    Bausteine
-  </button>
   <div class="floating-palette" id="floatingPalette" aria-hidden="true"></div>
 
   <div class="modal-backdrop" id="settingsModal" aria-hidden="true">
@@ -573,7 +495,6 @@
     showArrows: true,
     fontSize: 12,
     sidebarCollapsed: false,
-    floatingPaletteVisible: true,
     title: '',
     palettePosition: {x:120, y:120},
     contextConnectorId: null,
@@ -633,7 +554,6 @@
   const floatingPalette = document.getElementById('floatingPalette');
   const paletteBausteineHead = document.getElementById('paletteBausteineHead');
   const btnTogglePalette = document.getElementById('btnTogglePalette');
-  const btnMobilePalette = document.getElementById('btnMobilePalette');
   const selectRestorePrevious = document.getElementById('selectRestorePrevious');
   const restorePreviousMeta = document.getElementById('restorePreviousMeta');
   let nodeMenuVisible = false;
@@ -645,10 +565,6 @@
   const FONT_SIZE_STEP = 2;
   const LABEL_TEXT_PADDING = 24;
   const measureCanvas = document.createElement('canvas');
-  const MOBILE_BREAKPOINT = 900;
-  let mobileLayoutActive = false;
-  let sidebarBeforeMobileLayout = state.sidebarCollapsed;
-  let paletteVisibleBeforeMobileLayout = state.floatingPaletteVisible;
   const measureCtx = measureCanvas.getContext('2d');
   if(measureCtx){ measureCtx.font = `${FONT_WEIGHT} ${state.fontSize}px ${FONT_FAMILY}`; }
   const BASE_NODE_HEIGHT = 70;
@@ -1113,32 +1029,6 @@
     btnTogglePalette.setAttribute('aria-label', label);
     btnTogglePalette.setAttribute('aria-expanded', (!state.sidebarCollapsed).toString());
   }
-  function updateMobilePaletteButton(){
-    if(!btnMobilePalette) return;
-    const active = state.sidebarCollapsed && state.floatingPaletteVisible;
-    btnMobilePalette.classList.toggle('active', active);
-    btnMobilePalette.setAttribute('aria-pressed', active ? 'true' : 'false');
-  }
-  function syncFloatingPaletteVisibility(){
-    if(!floatingPalette) return;
-    const shouldShow = state.sidebarCollapsed && state.floatingPaletteVisible;
-    if(shouldShow){
-      floatingPalette.classList.add('show');
-      floatingPalette.setAttribute('aria-hidden','false');
-      applyPalettePosition();
-      floatingPalette.scrollTop = 0;
-    }else{
-      floatingPalette.classList.remove('show');
-      floatingPalette.setAttribute('aria-hidden','true');
-    }
-    updateMobilePaletteButton();
-  }
-  function setFloatingPaletteVisible(visible, {silent=false}={}){
-    const next = !!visible;
-    if(state.floatingPaletteVisible === next) return;
-    state.floatingPaletteVisible = next;
-    syncFloatingPaletteVisibility();
-  }
   function setSidebarCollapsed(collapsed, {silent=false}={}){
     const next = !!collapsed;
     const previous = state.sidebarCollapsed;
@@ -1156,12 +1046,18 @@
     if(next){
       document.body.classList.add('sidebar-collapsed');
       movePaletteToFloating();
-      if(!mobileLayoutActive) state.floatingPaletteVisible = true;
-      syncFloatingPaletteVisibility();
+      if(floatingPalette){
+        floatingPalette.classList.add('show');
+        floatingPalette.setAttribute('aria-hidden','false');
+      }
+      applyPalettePosition();
     }else{
       document.body.classList.remove('sidebar-collapsed');
+      if(floatingPalette){
+        floatingPalette.classList.remove('show');
+        floatingPalette.setAttribute('aria-hidden','true');
+      }
       movePaletteToSidebar();
-      syncFloatingPaletteVisibility();
     }
     updateToggleButton();
     requestStageSizeUpdate();
@@ -1264,29 +1160,8 @@
     closeConnectorMenu();
     closeNodeMenu();
   }
-  function updateMobileLayout(force=false){
-    const width = Math.max(0, window.innerWidth || state.viewportWidth || document.documentElement.clientWidth || 0);
-    const shouldEnable = width > 0 && width <= MOBILE_BREAKPOINT;
-    if(!force && shouldEnable === mobileLayoutActive) return;
-    mobileLayoutActive = shouldEnable;
-    if(shouldEnable){
-      sidebarBeforeMobileLayout = state.sidebarCollapsed;
-      paletteVisibleBeforeMobileLayout = state.floatingPaletteVisible;
-      document.body.classList.add('mobile-layout');
-      setSidebarCollapsed(true, {silent:true});
-      setFloatingPaletteVisible(false, {silent:true});
-    }else{
-      document.body.classList.remove('mobile-layout');
-      const next = typeof sidebarBeforeMobileLayout === 'boolean' ? sidebarBeforeMobileLayout : state.sidebarCollapsed;
-      setSidebarCollapsed(next, {silent:true});
-      const restore = typeof paletteVisibleBeforeMobileLayout === 'boolean' ? paletteVisibleBeforeMobileLayout : true;
-      setFloatingPaletteVisible(restore, {silent:true});
-    }
-    updateMobilePaletteButton();
-  }
   function handleViewportChange(){
     closeAllMenus();
-    updateMobileLayout();
     applyPalettePosition();
   }
   function openConnectorMenu(connId, clientX, clientY){
@@ -1543,7 +1418,6 @@
   applyArrowsToCanvas();
   updateArrowsUI();
   setSidebarCollapsed(state.sidebarCollapsed, {silent:true});
-  updateMobileLayout(true);
   applyPalettePosition();
   restartAutosaveTimer();
   restoreAutosaveIfAny();
@@ -2305,13 +2179,6 @@
   if(btnFontIncrease) btnFontIncrease.addEventListener('click', ()=> adjustFontSize(FONT_SIZE_STEP));
   if(btnFontDecrease) btnFontDecrease.addEventListener('click', ()=> adjustFontSize(-FONT_SIZE_STEP));
   if(btnTogglePalette) btnTogglePalette.addEventListener('click', ()=> setSidebarCollapsed(!state.sidebarCollapsed));
-  if(btnMobilePalette) btnMobilePalette.addEventListener('click', ()=>{
-    if(!state.sidebarCollapsed){
-      setSidebarCollapsed(true);
-    }
-    const visible = state.sidebarCollapsed && state.floatingPaletteVisible;
-    setFloatingPaletteVisible(!visible);
-  });
   if(selectRestorePrevious){
     selectRestorePrevious.addEventListener('change', ()=>{
       const value = selectRestorePrevious.value;
