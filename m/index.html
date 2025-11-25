@@ -277,13 +277,42 @@
     }
     body.mobile-layout #btnTogglePalette{display:none}
     body.mobile-layout main{overflow:auto}
-    body.mobile-layout .floating-palette{
-      width:min(220px, calc(100vw - 40px));
-      max-height:60vh;
-      left:20px;
-      padding:10px;
-      overflow:hidden;
-    }
+@media (max-width:800px){
+  .floating-palette{
+    width:min(185px, calc((100vw - 24px) * 0.85));
+    max-height:65vh;
+    padding:12px;
+    border-radius:14px;
+  }
+  .floating-palette h2{display:none;}
+  .floating-palette .palette-controls{gap:4px; flex-wrap:nowrap;}
+  .floating-palette .palette-controls button{min-height:30px; padding:4px 8px; font-size:12px;}
+  .floating-palette .palette-head{margin-bottom:6px;}
+  .floating-palette .shape{
+    padding:7px;
+    gap:7px;
+  }
+  .floating-palette .shape strong{font-size:13px;}
+  .floating-palette .shape .shape-description{font-size:11px;}
+}
+@media (max-width:700px){
+  .floating-palette{
+    width:min(165px, calc((100vw - 24px) * 0.78));
+    max-height:68vh;
+    padding:10px;
+    border-radius:12px;
+  }
+  .floating-palette h2{margin:0 0 4px; font-size:12px; letter-spacing:.04em;}
+  .floating-palette .palette-controls{gap:3px; flex-wrap:nowrap;}
+  .floating-palette .palette-controls button{min-height:26px; padding:3px 6px; font-size:12px;}
+  .floating-palette .palette-head{margin-bottom:4px;}
+  .floating-palette .shape{
+    padding:6px;
+    gap:6px;
+  }
+  .floating-palette .shape strong{font-size:12px;}
+  .floating-palette .shape .shape-description{font-size:10px;}
+}
     body.mobile-layout .floating-palette .palette{
       max-height:100%;
       overflow:hidden;
