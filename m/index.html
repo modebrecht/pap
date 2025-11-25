@@ -32,9 +32,11 @@
       "header header"
       "sidebar main";
     }
-    header{grid-area:header; display:flex; align-items:center; gap:12px; padding:6px 14px; background:#fff; box-shadow:var(--shadow); position:sticky; top:0; z-index:2}
+    header{grid-area:header; display:flex; flex-direction:column; gap:12px; padding:6px 14px; background:#fff; box-shadow:var(--shadow); position:sticky; top:0; z-index:2}
     .header-title-row{display:flex; align-items:center; gap:12px}
     .header-title-row .project-title{flex:1 1 auto}
+    .header-actions-row{display:flex; align-items:center; gap:12px; width:100%}
+    .header-controls{display:flex; align-items:center; gap:12px}
     header h1{font-size:16px; margin:0; font-weight:700; display:flex; align-items:center; gap:6px}
     header .spacer{flex:1}
     header button, header .file-btn-label{
@@ -344,37 +346,41 @@
       <h1><span class="emoji">🧭</span>PAP&nbsp;Builder</h1>
       <input id="projectTitle" class="project-title" type="text" placeholder="Projektname eingeben..." aria-label="Projektname" required />
     </div>
-    <div class="spacer"></div>
-    <div class="btn-group" id="groupImportExport">
-      <button type="button" id="btnNew" title="Neues Projekt starten"><span class="emoji">🆕</span> Neu</button>
-      <button type="button" id="btnImport" class="file-btn-label" title="Projekt aus JSON laden"><span class="emoji">📥</span> Import</button>
-      <div class="dropdown" id="exportDropdown">
-        <button id="btnExport" title="Export"><span class="emoji">📤</span> Export</button>
-        <div class="menu" id="menuExport" role="menu" aria-hidden="true">
-          <button type="button" data-action="export-json">Export JSON</button>
-          <button type="button" data-action="export-png">Export PNG</button>
-          <button type="button" data-action="export-png-grid">Export PNG + Gitter</button>
-        </div>
-      </div>
-    </div>
-    <div class="dropdown" id="playbackDropdown">
-      <button id="btnPlayback" title="Playback abspielen"><span class="emoji">▶️</span></button>
-      <div class="menu" id="playbackMenu" aria-hidden="true">
-        <div class="menu-section">
-          <div class="playback-speed-header">
-            <label for="playbackSpeed">Geschwindigkeit</label>
-            <div class="playback-speed-value"><span id="playbackSpeedValue">1.0x</span></div>
+    <div class="header-actions-row">
+      <div class="btn-group" id="groupImportExport">
+        <button type="button" id="btnNew" title="Neues Projekt starten"><span class="emoji">🆕</span> Neu</button>
+        <button type="button" id="btnImport" class="file-btn-label" title="Projekt aus JSON laden"><span class="emoji">📥</span> Import</button>
+        <div class="dropdown" id="exportDropdown">
+          <button id="btnExport" title="Export"><span class="emoji">📤</span> Export</button>
+          <div class="menu" id="menuExport" role="menu" aria-hidden="true">
+            <button type="button" data-action="export-json">Export JSON</button>
+            <button type="button" data-action="export-png">Export PNG</button>
+            <button type="button" data-action="export-png-grid">Export PNG + Gitter</button>
           </div>
-          <input id="playbackSpeed" type="range" min="0.1" max="2.5" step="0.1" value="1" />
-        </div>
-        <div class="menu-actions">
-          <button type="button" id="playbackPlay" aria-label="Play"><span class="emoji">▶︎</span></button>
-          <button type="button" id="playbackStop" aria-label="Stop"><span class="emoji">⏹︎</span></button>
-          <button type="button" id="playbackRestart" aria-label="Restart"><span class="emoji">↺</span></button>
         </div>
       </div>
+      <div class="spacer"></div>
+      <div class="header-controls">
+        <div class="dropdown" id="playbackDropdown">
+          <button id="btnPlayback" title="Playback abspielen"><span class="emoji">▶️</span></button>
+          <div class="menu" id="playbackMenu" aria-hidden="true">
+            <div class="menu-section">
+              <div class="playback-speed-header">
+                <label for="playbackSpeed">Geschwindigkeit</label>
+                <div class="playback-speed-value"><span id="playbackSpeedValue">1.0x</span></div>
+              </div>
+              <input id="playbackSpeed" type="range" min="0.1" max="2.5" step="0.1" value="1" />
+            </div>
+            <div class="menu-actions">
+              <button type="button" id="playbackPlay" aria-label="Play"><span class="emoji">▶︎</span></button>
+              <button type="button" id="playbackStop" aria-label="Stop"><span class="emoji">⏹︎</span></button>
+              <button type="button" id="playbackRestart" aria-label="Restart"><span class="emoji">↺</span></button>
+            </div>
+          </div>
+        </div>
+        <button id="btnSettings" title="Einstellungen"><span class="emoji">⚙️</span></button>
+      </div>
     </div>
-    <button id="btnSettings" title="Einstellungen"><span class="emoji">⚙️</span></button>
     <input id="fileImportJSON" class="file-input" type="file" accept="application/json" />
   </header>
 
