@@ -200,7 +200,7 @@
     .playback-orb-halo{fill:none; stroke:rgba(34,197,94,.55); stroke-width:3; opacity:0; pointer-events:none; transform-origin:center; transform-box:fill-box}
     .playback-orb.active{opacity:1; animation:playbackPulse 1.6s ease-in-out infinite}
     .playback-orb-halo.active{animation:playbackHaloPulse 1.6s ease-in-out infinite}
-    .toast-persistent{position:fixed; right:12px; bottom:70px; background:#0f172a; color:#f8fafc; padding:16px 18px; border-radius:16px; box-shadow:0 12px 30px rgba(15,23,42,.35); width:min(180px, calc(100% - 24px)); display:flex; flex-direction:column; gap:12px; pointer-events:auto; opacity:0; transform:translateY(12px); transition:.22s ease}
+    .toast-persistent{position:fixed; right:12px; bottom:70px; background:#0f172a; color:#f8fafc; padding:16px 18px; border-radius:16px; box-shadow:0 12px 30px rgba(15,23,42,.35); width:min(180px, calc(100% - 24px)); display:flex; flex-direction:column; gap:12px; pointer-events:auto; opacity:0; transform:translateY(12px); transition:.22s ease; z-index:400;}
     .toast-persistent.show{opacity:1; transform:translateY(0)}
     .toast-persistent[aria-hidden="true"]{display:none}
     .toast-persistent .toast-head{display:flex; align-items:center; justify-content:space-between; gap:12px}
@@ -214,7 +214,7 @@
 
     .badge{position:absolute; top:10px; left:10px; background:#111827; color:#e5e7eb; font-size:11px; padding:4px 8px; border-radius:999px; opacity:.85}
 
-    .toast{position:fixed; right:12px; bottom:12px; background:#111827; color:#e5e7eb; padding:10px 12px; border-radius:12px; font-weight:600; opacity:0; transform:translateY(8px); transition:.2s ease}
+    .toast{position:fixed; right:12px; bottom:12px; background:#111827; color:#e5e7eb; padding:10px 12px; border-radius:12px; font-weight:600; opacity:0; transform:translateY(8px); transition:.2s ease; z-index:400;}
     .toast.show{opacity:1; transform:translateY(0)}
 
     /* Settings modal */
@@ -319,25 +319,28 @@
       border:none;
       background:var(--accent-2);
       color:#fff;
-      font-weight:700;
-      border-radius:999px;
-      padding:12px 18px;
+      border-radius:50%;
+      width:52px;
+      height:52px;
       box-shadow:var(--shadow);
       display:none;
       z-index:120;
       min-width:0;
+      align-items:center;
+      justify-content:center;
+      padding:0;
+    }
+    .mobile-palette-toggle .indicator{
+      width:12px;
+      height:12px;
+      border-radius:50%;
+      background:rgba(255,255,255,.82);
+      box-shadow:0 0 0 3px rgba(255,255,255,.25);
+      display:block;
     }
     .mobile-palette-toggle:active{transform:translateY(1px);}
     .mobile-palette-toggle.active{background:var(--accent);}
-    body.mobile-layout .mobile-palette-toggle{display:inline-flex; align-items:center; gap:8px;}
-    body.mobile-layout .mobile-palette-toggle .indicator{
-      width:8px;
-      height:8px;
-      border-radius:50%;
-      background:#fff;
-      opacity:.8;
-    }
-    body.mobile-layout .mobile-palette-toggle.active .indicator{background:#064e3b; opacity:1;}
+    body.mobile-layout .mobile-palette-toggle{display:inline-flex;}
   </style>
 </head>
 <body>
@@ -452,9 +455,8 @@
       </svg>
     </div>
   </main>
-  <button type="button" id="btnMobilePalette" class="mobile-palette-toggle" aria-pressed="false">
-    <span class="indicator"></span>
-    Bausteine
+  <button type="button" id="btnMobilePalette" class="mobile-palette-toggle" aria-pressed="false" aria-label="Bausteine">
+    <span class="indicator" aria-hidden="true"></span>
   </button>
   <div class="floating-palette" id="floatingPalette" aria-hidden="true"></div>
 
