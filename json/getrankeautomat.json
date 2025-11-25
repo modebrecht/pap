@@ -1,0 +1,235 @@
+{
+  "nodes": [
+    {
+      "id": "n-1",
+      "type": "terminator",
+      "x": 420,
+      "y": 120,
+      "w": 160,
+      "h": 70,
+      "label": "Start",
+      "heightScale": 1
+    },
+    {
+      "id": "n-2",
+      "type": "io",
+      "x": 420,
+      "y": 240,
+      "w": 160,
+      "h": 70,
+      "label": "Getränke-Auswahl",
+      "heightScale": 1
+    },
+    {
+      "id": "n-3",
+      "type": "decision",
+      "x": 420,
+      "y": 340,
+      "w": 160,
+      "h": 70,
+      "label": "vorrätig?",
+      "heightScale": 1
+    },
+    {
+      "id": "n-4",
+      "type": "terminator",
+      "x": 160,
+      "y": 940,
+      "w": 160,
+      "h": 70,
+      "label": "Ende",
+      "heightScale": 1
+    },
+    {
+      "id": "n-8",
+      "type": "io",
+      "x": 420,
+      "y": 460,
+      "w": 160,
+      "h": 70,
+      "label": "DISPLAY: Preis anzeigen",
+      "heightScale": 1
+    },
+    {
+      "id": "n-10",
+      "type": "io",
+      "x": 160,
+      "y": 660,
+      "w": 160,
+      "h": 105,
+      "label": "DISPLAY: Error nicht vorrätig",
+      "heightScale": 1.5
+    },
+    {
+      "id": "n-13",
+      "type": "io",
+      "x": 620,
+      "y": 460,
+      "w": 160,
+      "h": 70,
+      "label": "Geldeingabe",
+      "heightScale": 1
+    },
+    {
+      "id": "n-15",
+      "type": "decision",
+      "x": 400,
+      "y": 580,
+      "w": 160,
+      "h": 70,
+      "label": "Genügend Geld?",
+      "heightScale": 1
+    },
+    {
+      "id": "n-17",
+      "type": "process",
+      "x": 400,
+      "y": 700,
+      "w": 160,
+      "h": 70,
+      "label": "Wechselgeld berechnen",
+      "heightScale": 1
+    },
+    {
+      "id": "n-19",
+      "type": "io",
+      "x": 400,
+      "y": 820,
+      "w": 160,
+      "h": 70,
+      "label": "Wechselgeld Ausgabe",
+      "heightScale": 1
+    },
+    {
+      "id": "n-21",
+      "type": "io",
+      "x": 620,
+      "y": 580,
+      "w": 160,
+      "h": 70,
+      "label": "Restbetrag anzeigen",
+      "heightScale": 1
+    },
+    {
+      "id": "n-24",
+      "type": "io",
+      "x": 400,
+      "y": 940,
+      "w": 160,
+      "h": 70,
+      "label": "Ausgabe Getränk",
+      "heightScale": 1
+    }
+  ],
+  "connectors": [
+    {
+      "id": "c-5",
+      "fromId": "n-1",
+      "toId": "n-2",
+      "arrow": true,
+      "label": ""
+    },
+    {
+      "id": "c-6",
+      "fromId": "n-2",
+      "toId": "n-3",
+      "arrow": true,
+      "label": ""
+    },
+    {
+      "id": "c-9",
+      "fromId": "n-3",
+      "toId": "n-8",
+      "arrow": true,
+      "label": "ja"
+    },
+    {
+      "id": "c-11",
+      "fromId": "n-3",
+      "toId": "n-10",
+      "arrow": true,
+      "label": "nein"
+    },
+    {
+      "id": "c-12",
+      "fromId": "n-10",
+      "toId": "n-4",
+      "arrow": true,
+      "label": ""
+    },
+    {
+      "id": "c-14",
+      "fromId": "n-8",
+      "toId": "n-13",
+      "arrow": true,
+      "label": ""
+    },
+    {
+      "id": "c-16",
+      "fromId": "n-13",
+      "toId": "n-15",
+      "arrow": true,
+      "label": ""
+    },
+    {
+      "id": "c-18",
+      "fromId": "n-15",
+      "toId": "n-17",
+      "arrow": true,
+      "label": "ja"
+    },
+    {
+      "id": "c-20",
+      "fromId": "n-17",
+      "toId": "n-19",
+      "arrow": true,
+      "label": ""
+    },
+    {
+      "id": "c-22",
+      "fromId": "n-15",
+      "toId": "n-21",
+      "arrow": true,
+      "label": "nein"
+    },
+    {
+      "id": "c-23",
+      "fromId": "n-21",
+      "toId": "n-13",
+      "arrow": true,
+      "label": ""
+    },
+    {
+      "id": "c-25",
+      "fromId": "n-19",
+      "toId": "n-24",
+      "arrow": true,
+      "label": ""
+    },
+    {
+      "id": "c-26",
+      "fromId": "n-24",
+      "toId": "n-4",
+      "arrow": true,
+      "label": ""
+    }
+  ],
+  "meta": {
+    "grid": 20,
+    "savedAt": "2025-11-25T19:46:03.818Z",
+    "nextId": 27,
+    "verticalUnlimited": true,
+    "horizontalUnlimited": false,
+    "fontSize": 14,
+    "sidebarCollapsed": false,
+    "floatingPalette": {
+      "x": 16,
+      "y": 128
+    },
+    "maxViewportWidth": 1040,
+    "maxViewportHeight": 1375,
+    "stageWidth": 1120,
+    "stageHeight": 1375,
+    "title": "Getränkeautomat"
+  }
+}
