@@ -1,0 +1,259 @@
+{
+  "nodes": [
+    {
+      "id": "n-1",
+      "type": "terminator",
+      "x": 660,
+      "y": 80,
+      "w": 160,
+      "h": 70,
+      "label": "Start",
+      "heightScale": 1
+    },
+    {
+      "id": "n-2",
+      "type": "io",
+      "x": 320,
+      "y": 240,
+      "w": 160,
+      "h": 70,
+      "label": "Ziel-Temparatur einstellen",
+      "heightScale": 1
+    },
+    {
+      "id": "n-3",
+      "type": "io",
+      "x": 320,
+      "y": 360,
+      "w": 160,
+      "h": 70,
+      "label": "Wasser einfüllen",
+      "heightScale": 1
+    },
+    {
+      "id": "n-6",
+      "type": "decision",
+      "x": 320,
+      "y": 520,
+      "w": 160,
+      "h": 70,
+      "label": "Genügend wasser eingefüllt?",
+      "heightScale": 1
+    },
+    {
+      "id": "n-7",
+      "type": "terminator",
+      "x": 660,
+      "y": 520,
+      "w": 160,
+      "h": 70,
+      "label": "Ende",
+      "heightScale": 1
+    },
+    {
+      "id": "n-8",
+      "type": "io",
+      "x": 500,
+      "y": 360,
+      "w": 160,
+      "h": 70,
+      "label": "PIEPSEN: Vorgang abgebrochen",
+      "heightScale": 1
+    },
+    {
+      "id": "n-14",
+      "type": "io",
+      "x": 320,
+      "y": 660,
+      "w": 160,
+      "h": 70,
+      "label": "Startknopf drücken",
+      "heightScale": 1
+    },
+    {
+      "id": "n-16",
+      "type": "process",
+      "x": 320,
+      "y": 780,
+      "w": 160,
+      "h": 70,
+      "label": "Heizelement starten",
+      "heightScale": 1
+    },
+    {
+      "id": "n-18",
+      "type": "decision",
+      "x": 320,
+      "y": 900,
+      "w": 160,
+      "h": 70,
+      "label": "Zieltemparatur erreicht?",
+      "heightScale": 1
+    },
+    {
+      "id": "n-20",
+      "type": "process",
+      "x": 320,
+      "y": 1160,
+      "w": 160,
+      "h": 70,
+      "label": "Heizelement ausschalten",
+      "heightScale": 1
+    },
+    {
+      "id": "n-22",
+      "type": "io",
+      "x": 660,
+      "y": 1160,
+      "w": 160,
+      "h": 70,
+      "label": "PIEPSEN: Wasser fertig gekocht!",
+      "heightScale": 1
+    },
+    {
+      "id": "n-26",
+      "type": "process",
+      "x": 540,
+      "y": 900,
+      "w": 160,
+      "h": 70,
+      "label": "Wasser weiter erhitzen",
+      "heightScale": 1
+    },
+    {
+      "id": "n-33",
+      "type": "decision",
+      "x": 660,
+      "y": 240,
+      "w": 160,
+      "h": 70,
+      "label": "Strom vorhanden?",
+      "heightScale": 1
+    }
+  ],
+  "connectors": [
+    {
+      "id": "c-5",
+      "fromId": "n-2",
+      "toId": "n-3",
+      "arrow": true,
+      "label": ""
+    },
+    {
+      "id": "c-9",
+      "fromId": "n-3",
+      "toId": "n-6",
+      "arrow": true,
+      "label": ""
+    },
+    {
+      "id": "c-10",
+      "fromId": "n-6",
+      "toId": "n-8",
+      "arrow": true,
+      "label": "nein"
+    },
+    {
+      "id": "c-11",
+      "fromId": "n-8",
+      "toId": "n-7",
+      "arrow": true,
+      "label": ""
+    },
+    {
+      "id": "c-17",
+      "fromId": "n-14",
+      "toId": "n-16",
+      "arrow": true,
+      "label": ""
+    },
+    {
+      "id": "c-19",
+      "fromId": "n-16",
+      "toId": "n-18",
+      "arrow": true,
+      "label": ""
+    },
+    {
+      "id": "c-21",
+      "fromId": "n-18",
+      "toId": "n-20",
+      "arrow": true,
+      "label": "ja"
+    },
+    {
+      "id": "c-23",
+      "fromId": "n-20",
+      "toId": "n-22",
+      "arrow": true,
+      "label": ""
+    },
+    {
+      "id": "c-25",
+      "fromId": "n-22",
+      "toId": "n-7",
+      "arrow": true,
+      "label": ""
+    },
+    {
+      "id": "c-31",
+      "fromId": "n-26",
+      "toId": "n-18",
+      "arrow": true,
+      "label": "nein"
+    },
+    {
+      "id": "c-34",
+      "fromId": "n-1",
+      "toId": "n-33",
+      "arrow": true,
+      "label": ""
+    },
+    {
+      "id": "c-35",
+      "fromId": "n-33",
+      "toId": "n-2",
+      "arrow": true,
+      "label": "ja"
+    },
+    {
+      "id": "c-36",
+      "fromId": "n-33",
+      "toId": "n-7",
+      "arrow": true,
+      "label": "nein"
+    },
+    {
+      "id": "c-37",
+      "fromId": "n-6",
+      "toId": "n-14",
+      "arrow": true,
+      "label": "ja"
+    },
+    {
+      "id": "c-42",
+      "fromId": "n-18",
+      "toId": "n-26",
+      "arrow": true,
+      "label": ""
+    }
+  ],
+  "meta": {
+    "grid": 20,
+    "savedAt": "2025-11-25T10:14:50.585Z",
+    "nextId": 43,
+    "verticalUnlimited": true,
+    "horizontalUnlimited": false,
+    "fontSize": 14,
+    "sidebarCollapsed": false,
+    "floatingPalette": {
+      "x": 16,
+      "y": 128
+    },
+    "maxViewportWidth": 1280,
+    "maxViewportHeight": 1395,
+    "stageWidth": 1280,
+    "stageHeight": 1395,
+    "title": "Wasserkocher-2"
+  }
+}
